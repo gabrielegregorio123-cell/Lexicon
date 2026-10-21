@@ -217,23 +217,30 @@ export default function App() {
   };
 
   const wide = route.main === 'editor';
+  // While reading an entry the side bars slim down and the text gets the room
+  const compact = route.main === 'entry';
+  const layoutVars = { '--side-w': compact ? '11rem' : '14.5rem', '--garland-w': compact ? '4rem' : '6.4rem' } as React.CSSProperties;
 
   if (!unlocked) return <AccessGate lang={lang} onLang={changeLang} onUnlock={() => setUnlocked(true)} />;
 
   return (
-    <div className="min-h-screen bg-transparent text-ink">
+    <div className="min-h-screen bg-transparent text-ink" style={layoutVars}>
       <Sidebar
         currentRoute={currentHash}
         lang={lang}
         onSetLang={changeLang}
         lexiconCount={lexiconCount}
         chapterCount={chapterCount}
+        compact={compact}
       />
-      <div className="relative z-[1] flex min-h-screen flex-col lg:pl-[16.5rem] min-[1280px]:pl-[23rem]">
+      <div
+        className="relative z-[1] flex min-h-screen flex-col transition-[padding] duration-200 lg:pl-[calc(var(--side-w)+2rem)] min-[1280px]:pl-[calc(var(--side-w)+var(--garland-w)+2.5rem)]"
+        style={layoutVars}
+      >
         {/* gold filigree serpent: part of the page, so it scrolls natively (no script, always in step) */}
         <div aria-hidden className="garland" style={{ backgroundImage: `url(${asset('brand/garland-tile.svg')})` }} />
-        <main className={`mx-auto w-full flex-1 px-6 py-12 sm:px-10 lg:py-20 ${wide ? 'max-w-none xl:px-14' : 'max-w-4xl'}`}><ErrorBoundary lang={lang} resetKey={currentHash}>{renderView()}</ErrorBoundary></main>
-        <Footer lang={lang} entryCount={entries.length} onExportJson={() => exportDatasetAsJSON(entries)} wide={wide} />
+        <main className={`mx-auto w-full flex-1 px-6 py-12 sm:px-10 lg:py-20 ${wide ? 'max-w-none xl:px-14' : compact ? 'max-w-6xl' : 'max-w-4xl'}`}><ErrorBoundary lang={lang} resetKey={currentHash}>{renderView()}</ErrorBoundary></main>
+        <Footer lang={lang} entryCount={entries.length} onExportJson={() => exportDatasetAsJSON(entries)} wide={wide} roomy={compact} />
       </div>
     </div>
   );

@@ -5,14 +5,15 @@ import { tr } from '../i18n/translations.ts';
 /** The four partner universities, in their own languages, always shown together. */
 const PARTNERS = ['Alma Mater Studiorum – Università di Bologna', 'Helsingin yliopisto', 'Uniwersytet Jagielloński w Krakowie', 'Universidad Complutense de Madrid'];
 
-export const Footer: React.FC<{ lang: Language; entryCount: number; onExportJson?: () => void; wide?: boolean }> = ({
+export const Footer: React.FC<{ lang: Language; entryCount: number; onExportJson?: () => void; wide?: boolean; roomy?: boolean }> = ({
   lang,
   entryCount,
   onExportJson,
   wide,
+  roomy,
 }) => (
   <footer className="no-print mt-28 border-t border-line">
-    <div className={`mx-auto space-y-8 px-6 py-12 sm:px-10 ${wide ? 'max-w-none xl:px-14' : 'max-w-4xl'}`}>
+    <div className={`mx-auto space-y-8 px-6 py-12 sm:px-10 ${wide ? 'max-w-none xl:px-14' : roomy ? 'max-w-6xl' : 'max-w-4xl'}`}>
       <div className="flex flex-col gap-4 text-[0.95rem] text-faint md:flex-row md:items-center md:justify-between">
         <div className="space-y-1">
           <p className="font-medium text-muted">LARES — Languages · Religions</p>

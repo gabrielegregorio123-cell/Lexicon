@@ -8,6 +8,8 @@ interface SidebarProps {
   onSetLang: (lang: Language) => void;
   lexiconCount: number;
   chapterCount: number;
+  /** Slimmer rail, used while reading an entry so the text gets the room. */
+  compact?: boolean;
 }
 
 const LABELS = {
@@ -49,6 +51,7 @@ const Panel: React.FC<SidebarProps & { onNavigate?: () => void }> = ({
   onSetLang,
   lexiconCount,
   chapterCount,
+  compact,
   onNavigate,
 }) => {
   const t = LABELS[lang];
@@ -56,19 +59,19 @@ const Panel: React.FC<SidebarProps & { onNavigate?: () => void }> = ({
   const isActive = (match: string) => (match === '' ? route === '' : route === match || route.startsWith(`${match}/`));
 
   const Link = ({ href, match, label, count }: { href: string; match: string; label: string; count?: number }) => (
-    <a href={href} className="nav-link" aria-current={isActive(match) ? 'page' : undefined} onClick={onNavigate}>
+    <a href={href} className={compact ? 'nav-link nav-link-compact' : 'nav-link'} aria-current={isActive(match) ? 'page' : undefined} onClick={onNavigate}>
       <span>{label}</span>
-      {count ? <small>{count}</small> : null}
+      {count && !compact ? <small>{count}</small> : null}
     </a>
   );
 
   return (
     <div className="flex h-full flex-col">
       <a href="#/" onClick={onNavigate} className="block px-2 pt-1" title="LARES — Home">
-        <Logo className="h-12" />
+        <Logo className={compact ? 'h-9' : 'h-12'} />
       </a>
 
-      <nav className="mt-9 space-y-0.5" aria-label="Main">
+      <nav className={`${compact ? 'mt-6' : 'mt-9'} space-y-0.5`} aria-label="Main">
         <Link href="#/lexicon" match="lexicon" label={t.lexicon} count={lexiconCount} />
         <Link href="#/book-chapters" match="book-chapters" label={t.chapters} count={chapterCount} />
         <Link href="#/indices/sources" match="indices" label={t.indices} />
@@ -109,7 +112,10 @@ export const Sidebar: React.FC<SidebarProps> = (props) => {
   return (
     <>
       {/* Desktop: fixed glass column */}
-      <aside className="no-print glass fixed bottom-3 left-3 top-3 z-40 hidden w-[14.5rem] rounded-2xl p-4 lg:block">
+      <aside
+        className={`no-print glass fixed bottom-3 left-3 top-3 z-40 hidden w-[var(--side-w)] rounded-2xl lg:block ${props.compact ? 'p-3' : 'p-4'}`}
+        style={{ transition: 'width 220ms ease' }}
+      >
         <Panel {...props} />
       </aside>
 

@@ -156,7 +156,7 @@ export const EntryDetailView: React.FC<EntryDetailViewProps> = ({ entry, lang, t
       </header>
 
       {activeTab === 'reading' && (
-        <div className="grid items-start gap-14 xl:grid-cols-[11rem_minmax(0,1fr)]">
+        <div className="grid items-start gap-10 xl:grid-cols-[9.5rem_minmax(0,1fr)]">
           <aside className="no-print xl:sticky xl:top-10">
             {/* narrow screens: one folded block; wide screens: a quiet margin column */}
             <details className="border-y border-line py-3 xl:hidden">
@@ -179,7 +179,7 @@ export const EntryDetailView: React.FC<EntryDetailViewProps> = ({ entry, lang, t
               </nav>
             )}
             <div className="tag-highlight-toolbar border-t border-line pt-5">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <p className="label !mb-0">{t.showHideHighlights}</p>
                 <div className="flex gap-2 text-sm text-faint">
                   <button type="button" onClick={() => setToggles(allToggles(true))} className="hover:text-brand">
@@ -198,7 +198,7 @@ export const EntryDetailView: React.FC<EntryDetailViewProps> = ({ entry, lang, t
                     type="button"
                     onClick={() => setToggles((p) => ({ ...p, [cat]: !p[cat] }))}
                     aria-pressed={toggles[cat]}
-                    className="chip"
+                    className="chip !px-1.5 !text-[0.85rem]"
                     data-active={toggles[cat]}
                   >
                     {t[`cat${cat.charAt(0).toUpperCase() + cat.slice(1)}` as keyof typeof t] || cat}
@@ -224,7 +224,7 @@ export const EntryDetailView: React.FC<EntryDetailViewProps> = ({ entry, lang, t
               </nav>
             )}
             <div className="tag-highlight-toolbar border-t border-line pt-5">
-              <div className="mb-2 flex items-center justify-between">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <p className="label !mb-0">{t.showHideHighlights}</p>
                 <div className="flex gap-2 text-sm text-faint">
                   <button type="button" onClick={() => setToggles(allToggles(true))} className="hover:text-brand">
@@ -243,7 +243,7 @@ export const EntryDetailView: React.FC<EntryDetailViewProps> = ({ entry, lang, t
                     type="button"
                     onClick={() => setToggles((p) => ({ ...p, [cat]: !p[cat] }))}
                     aria-pressed={toggles[cat]}
-                    className="chip"
+                    className="chip !px-1.5 !text-[0.85rem]"
                     data-active={toggles[cat]}
                   >
                     {t[`cat${cat.charAt(0).toUpperCase() + cat.slice(1)}` as keyof typeof t] || cat}
@@ -254,7 +254,7 @@ export const EntryDetailView: React.FC<EntryDetailViewProps> = ({ entry, lang, t
             </div>
           </aside>
 
-          <article ref={contentRef} onClick={handleContentClick} className="min-w-0 space-y-16">
+          <article ref={contentRef} onClick={handleContentClick} className="min-w-0 max-w-[56rem] space-y-16">
             {sections.map((sec) => (
               <section key={sec.id} id={sec.id} className="scroll-mt-10 space-y-5">
                 {sec.head && <h2 className="border-b border-line pb-2 text-3xl font-medium">{sec.head}</h2>}
@@ -265,7 +265,7 @@ export const EntryDetailView: React.FC<EntryDetailViewProps> = ({ entry, lang, t
                     <div className="h-4 w-4/5 animate-pulse rounded bg-slate-soft" />
                   </div>
                 ) : (
-                  <div className="entry-html-content scholarly-prose" dangerouslySetInnerHTML={{ __html: htmlOf(sec) }} />
+                  <div className="entry-html-content scholarly-prose !max-w-none" dangerouslySetInnerHTML={{ __html: htmlOf(sec) }} />
                 )}
               </section>
             ))}

@@ -3,6 +3,8 @@
 /* ── Design tokens ─────────────────────────────────────────────────────────
    Cool paper white, Garamond text, petrol and slate from the LARES logo. */
 :root {
+  --side-w: 14.5rem;
+  --garland-w: 6.4rem;
   /* LARES logo: deep petrol blue + pale slate, on cool paper white */
   --bg: #fafbfb;
   --surface: #ffffff;
@@ -161,6 +163,10 @@
     color: var(--brand);
     background: var(--brand-soft);
     box-shadow: inset 2px 0 0 var(--brand);
+  }
+  .nav-link-compact {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.95rem;
   }
   .nav-link small {
     font-size: 0.8rem;
@@ -422,10 +428,10 @@ mark {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 15.6rem;
-  width: 6.4rem;
+  left: calc(var(--side-w) + 1.1rem);
+  width: var(--garland-w);
   background-repeat: repeat-y;
-  background-size: 6.4rem auto;
+  background-size: var(--garland-w) auto;
   background-position: center top;
   opacity: 0.5;
   pointer-events: none;
