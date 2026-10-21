@@ -422,7 +422,10 @@ mark {
   top: 0;
   left: 15.6rem;
   height: 100vh;
-  width: auto;
+  /* never wider than its reserved column (see App), narrower on short screens so it keeps its proportions */
+  width: min(6.4rem, calc(100vh * 0.109));
+  object-fit: contain;
+  object-position: top center;
   opacity: 0.5;
   pointer-events: none;
   user-select: none;

@@ -231,7 +231,7 @@ export default function App() {
       />
       {/* gold filigree serpent, fixed beside the sidebar: a watermark that follows the whole site */}
       <img src={asset('brand/garland.svg')} alt="" aria-hidden className="garland" draggable={false} />
-      <div className="relative z-[1] flex min-h-screen flex-col lg:pl-[16.5rem]">
+      <div className="relative z-[1] flex min-h-screen flex-col lg:pl-[16.5rem] min-[1100px]:pl-[23rem]">
         <main className={`mx-auto w-full flex-1 px-6 py-12 sm:px-10 lg:py-20 ${wide ? 'max-w-none xl:px-14' : 'max-w-4xl'}`}><ErrorBoundary lang={lang} resetKey={currentHash}>{renderView()}</ErrorBoundary></main>
         <Footer lang={lang} entryCount={entries.length} onExportJson={() => exportDatasetAsJSON(entries)} wide={wide} />
       </div>

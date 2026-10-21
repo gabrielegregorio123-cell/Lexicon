@@ -1,11 +1,11 @@
 /**
  * Generates public/brand/garland.svg: a stylised serpent, drawn as a fine gold outline with a
- * dotted spine, meant to run down the left side of the site as a watermark.
+ * dotted spine and scale chevrons, meant to run down the left side of the site as a watermark.
  *   npx tsx scripts/make-garland.ts
  */
 import fs from 'node:fs';
 
-const W = 190;
+const W = 120;
 const H = 1100;
 const GOLD = '#a98a3d';
 const STEP = 4; // sampling step along the body
@@ -14,7 +14,7 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 
 /** Centre line: a calm S-wave whose swing grows a little towards the middle. */
 const centre = (y: number) => {
-  const swing = 30 + 18 * Math.sin((Math.PI * y) / H);
+  const swing = 24 + 10 * Math.sin((Math.PI * y) / H);
   return W / 2 + swing * Math.sin((2 * Math.PI * y) / 270 + 0.55);
 };
 
@@ -32,22 +32,6 @@ for (let y = 64; y <= H - 20; y += STEP) {
   const len = Math.hypot(dx, 2);
   pts.push({ x, y, w: width(y), nx: 2 / len, ny: -dx / len });
 }
-
-/** A small spiral tendril growing outwards from a bend of the body. */
-const curl = (x: number, y: number, dir: 1 | -1): string => {
-  const turns = 1.7;
-  const n = 36;
-  const d: string[] = [];
-  for (let i = 0; i <= n; i++) {
-    const t = i / n;
-    const ang = Math.PI * 0.15 + t * turns * 2 * Math.PI;
-    const r = 15 * (1 - t) + 2;
-    const px = x + dir * (14 + r * Math.cos(ang) - 15 + 4) + dir * 6;
-    const py = y + r * Math.sin(ang) * -1 - 6;
-    d.push(`${i === 0 ? 'M' : 'L'}${px.toFixed(1)},${py.toFixed(1)}`);
-  }
-  return d.join('');
-};
 
 const ring = (inset: number): string => {
   const usable = pts.filter((p) => p.w - inset > 1);
@@ -82,22 +66,9 @@ const chevrons = pts
   })
   .join('');
 
-// tendrils at the outer side of every bend (where the centre line is furthest left or right)
-const curls: string[] = [];
-for (let i = 2; i < pts.length - 2; i++) {
-  const a = pts[i - 1].x;
-  const b = pts[i].x;
-  const c = pts[i + 1].x;
-  if (pts[i].y > 150 && pts[i].y < H - 160 && ((b > a && b > c) || (b < a && b < c))) {
-    const dir = b > a ? 1 : -1;
-    curls.push(`<path d="${curl(b + (dir * pts[i].w) / 2, pts[i].y, dir as 1 | -1)}"/>`);
-  }
-}
-
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" fill="none">
   <g fill="${GOLD}" fill-rule="evenodd"><path d="${ring(0)}${ring(5)}"/></g>
   <g fill="${GOLD}">${dots}</g>
-  <g stroke="${GOLD}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${curls.join('')}</g>
   <g stroke="${GOLD}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85">${chevrons}</g>
   <path d="${head}" stroke="${GOLD}" stroke-width="2.4" stroke-linejoin="round"/>
   <circle cx="${hx - 15}" cy="${hy - 24}" r="2" fill="${GOLD}"/>
