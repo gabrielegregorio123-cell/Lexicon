@@ -4,7 +4,7 @@ import { DEFAULT_LANGUAGE, isLanguage, type Language } from './i18n/translations
 import type { LexiconEntry } from './types/lexicon.ts';
 import { loadCorpus } from './utils/fileLoader.ts';
 import { clearBodyCache } from './utils/entryBody.ts';
-import { STATIC_SITE } from './utils/endpoints.ts';
+import { STATIC_SITE, asset } from './utils/endpoints.ts';
 import { exportDatasetAsJSON } from './utils/csvExport.ts';
 import { Sidebar } from './components/Sidebar.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
@@ -229,7 +229,9 @@ export default function App() {
         lexiconCount={lexiconCount}
         chapterCount={chapterCount}
       />
-      <div className="flex min-h-screen flex-col lg:pl-[16.5rem]">
+      {/* gold filigree serpent, fixed beside the sidebar: a watermark that follows the whole site */}
+      <img src={asset('brand/garland.svg')} alt="" aria-hidden className="garland" draggable={false} />
+      <div className="relative z-[1] flex min-h-screen flex-col lg:pl-[16.5rem]">
         <main className={`mx-auto w-full flex-1 px-6 py-12 sm:px-10 lg:py-20 ${wide ? 'max-w-none xl:px-14' : 'max-w-4xl'}`}><ErrorBoundary lang={lang} resetKey={currentHash}>{renderView()}</ErrorBoundary></main>
         <Footer lang={lang} entryCount={entries.length} onExportJson={() => exportDatasetAsJSON(entries)} wide={wide} />
       </div>

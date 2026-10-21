@@ -415,6 +415,26 @@ mark {
   mix-blend-mode: multiply;
   filter: hue-rotate(14deg);
 }
+/* Gold filigree serpent beside the sidebar: matte, translucent, behind the content */
+.garland {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 15.6rem;
+  height: 100vh;
+  width: auto;
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+}
+@media (min-width: 1100px) {
+  .garland { display: block; }
+}
+@media print {
+  .garland { display: none; }
+}
+
 /* ── Rendered TEI (entries, chapters, static pages) ───────────────────── */
 .tei-p { margin: 0 0 1.1em; }
 .tei-head { font-size: 1.45rem; font-weight: 500; margin: 2em 0 0.6em; line-height: 1.25; }
