@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader>
+        <fileDesc>
+            <titleStmt>
+                <title xml:lang="it">TITLE</title>
+                <title xml:lang="en">TITLE</title>
+                <title xml:lang="pl">TITLE</title>
+            </titleStmt>
+            <publicationStmt>
+                <publisher><ref target="https://site.unibo.it/lares/">LARES Project</ref></publisher>
+                <date when="2021"/>
+                <idno type="filename">lexicon_XXX</idno>
+                <availability>
+                    <licence target="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International</licence>
+                </availability>
+            </publicationStmt>
+            <sourceDesc>
+                <p>Born digital document.</p>
+            </sourceDesc>
+        </fileDesc>
+        <revisionDesc>
+            <listChange>
+                <change when="2022-02-10" who="NAME">encoded in XML</change>
+                <change when="2021-10-12" who="NAME">written contents</change>
+            </listChange>
+        </revisionDesc>
+    </teiHeader>
+    <text>
+        <body>
+            <div type="edition" xml:lang="it">
+                <div type="textpart" n="...">
+                    <head>...</head>
+                    <p>...</p>                    
+                </div>
+            </div>
+            
+            <div type="edition" xml:lang="en">
+                <div type="textpart" n="...">
+                    <head>...</head>
+                    <p>...</p>                    
+                </div>
+            </div>
+            
+            <div type="edition" xml:lang="pl">
+                <div type="textpart" n="...">
+                    <head>...</head>
+                    <p>...</p>                    
+                </div>
+            </div>
+            
+            <div type="bibliography">
+                <p>...</p>
+            </div>
+        </body>
+    </text>
+</TEI>

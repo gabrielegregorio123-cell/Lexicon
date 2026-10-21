@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="http://www.tei-c.org/release/xml/tei/custom/schema/relaxng/tei_all.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+    <teiHeader>
+        <fileDesc>
+            <titleStmt>
+                <title>Team</title>
+            </titleStmt>
+            <publicationStmt>
+                <publisher><ref target="https://site.unibo.it/lares/">LARES Project</ref></publisher>
+                <date when="2021"/>
+                <availability>
+                    <licence target="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International</licence>
+                </availability>
+            </publicationStmt>
+            <sourceDesc>
+                <p>Born digital document.</p>
+            </sourceDesc>
+        </fileDesc>
+    </teiHeader>
+    <text>
+        <body>
+            <div type="commentary">
+                <div>
+                    <head>Project coordinators</head>
+                    <p xml:id="gviscardi"><emph>Giuseppina Paola Viscardi</emph> – Alma Mater Studiorum Università di Bologna</p>
+                    <p xml:id="mkajava"><emph>Mika Kajava</emph> – Helsingin Yliopisto</p>
+                    <p xml:id="ajiménez"><emph>Ana Isabel Jiménez San Cristóbal</emph> – Universidad Complutense de Madrid</p>
+                    <p xml:id="masalvarez"><emph>Marco Antonio Santamaría Álvarez</emph> – Universidad Complutense de Madrid</p>
+                    <p xml:id="pgdearagonsierra"><emph>Pedro Giménez de Aragón Sierra</emph> – Universidad de Sevilla Pablo de Olavide</p>
+                    <p xml:id="rgordillohervas"><emph>Rocío Gordillo Hervás</emph> – Universidad de Sevilla Pablo de Olavide</p>
+                    <p xml:id="drohde"><emph>Dorothea Rohde</emph> – Universität Bielefeld</p>
+                    <p xml:id="kbielawski"><emph>Krzysztof Bielawski</emph> – Uniwersytet Jagielloński w Krakowie</p>
+                    <p xml:id="ltrzcionkowski"><emph>Lech Trzcionkowski</emph> – Uniwersytet Jagielloński w Krakowie</p>
+                </div>
+                
+                <div>
+                    <head>Other team members</head>
+                    <p xml:id="csalvaterra"><emph>Carla Salvaterra</emph> – Alma Mater Studiorum Università di Bologna – Project coordination support, XML encoding</p>
+                    <p xml:id="ivagionakis"><emph>Irene Vagionakis</emph> – Alma Mater Studiorum Università di Bologna – Web development, XML encoding</p>
+                    <p xml:id="mfogagnolo"><emph>Marta Fogagnolo</emph> – Alma Mater Studiorum Università di Bologna – XML encoding</p>
+                    <p xml:id="gspampinato"><emph>Gaetano Spampinato</emph> – Université de Fribourg – Contributions to the Lexicon, XML encoding</p>
+                    <p xml:id="gfanelli"><emph>Gaia Fanelli</emph> – Alma Mater Studiorum Università di Bologna – XML encoding</p>
+                    <p xml:id="cborgatti"><emph>Caterina Borgatti</emph> – Università di Torino – Contributions to the Lexicon, XML encoding</p>
+                    <p xml:id="ggregorio"><emph>Gabriele Gregorio</emph> – Alma Mater Studiorum Università di Bologna – XML encoding</p>
+                </div>
+            </div>
+        </body>
+    </text>
+</TEI>

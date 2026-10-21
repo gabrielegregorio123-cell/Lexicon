@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-model href="http://www.stoa.org/epidoc/schema/latest/tei-epidoc.rng" schematypens="http://relaxng.org/ns/structure/1.0"?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt>
+        <title>Thesaurus</title>
+      </titleStmt>
+      <publicationStmt>
+        <p/>
+      </publicationStmt>
+      <sourceDesc>
+        <p/>
+      </sourceDesc>
+    </fileDesc>
+    <encodingDesc>
+      <classDecl>
+        <taxonomy xml:id="thesaurus">
+          <category xml:id="representation" n="1">
+            <gloss xml:lang="it">Rappresentazione</gloss> <!-- Field = Dominio -->
+            <gloss xml:lang="en">Representation</gloss>
+            <category xml:id="practice" n="1.1">
+              <gloss xml:lang="it">Pratica (rito)</gloss> <!-- Ambito = Realm -->
+              <gloss xml:lang="en">Practice (rite)</gloss>
+              <category xml:id="ritual_object"/>
+              <category xml:id="ritual_fumigations"/>
+            </category>
+            <category xml:id="belief" n="1.2">
+              <gloss xml:lang="it">Credenza (mito)</gloss>
+              <gloss xml:lang="en">Belief (myth)</gloss>
+              <category xml:id="mythical_communication"/>
+              <category xml:id="mythical_object"/>
+            </category>
+            <category xml:id="fiction" n="1.3">
+              <gloss xml:lang="it">Finzione (simbolo)</gloss>
+              <gloss xml:lang="en">Fiction (symbol)</gloss>
+            </category>
+          </category>
+          
+          <category xml:id="communication" n="2">
+            <gloss xml:lang="it">Comunicazione</gloss>
+            <gloss xml:lang="en">Communication</gloss>
+            <category xml:id="sign" n="2.1">
+              <gloss xml:lang="it">Segno (semiotico)</gloss>
+              <gloss xml:lang="en">Sign (semiotics)</gloss>
+            </category>
+            <category xml:id="meaning" n="2.2">
+              <gloss xml:lang="it">Significato (semantico)</gloss>
+              <gloss xml:lang="en">Meaning (semantics)</gloss>
+            </category>
+            <category xml:id="speech" n="2.3">
+              <gloss xml:lang="it">Discorso (retorico)</gloss>
+              <gloss xml:lang="en">Speech (rhetoric)</gloss>
+                  <category xml:id="rhetoric_representation"/>
+            </category>
+          </category>
+          
+          <category xml:id="fruition" n="3">
+            <gloss xml:lang="it">Fruizione</gloss>
+            <gloss xml:lang="en">Fruition</gloss>
+            <category xml:id="systems" n="3.1">
+              <gloss xml:lang="it">Sistemi</gloss>
+              <gloss xml:lang="en">Systems</gloss>
+              <category xml:id="reference_to_sacrificial_system"/>
+            </category>
+            <category xml:id="instruments" n="3.2">
+              <gloss xml:lang="it">Strumenti</gloss>
+              <gloss xml:lang="en">Instruments</gloss>
+              <category xml:id="juridical_instrument"/>
+              <category xml:id="sacrificial_action"/>
+            </category>
+            <category xml:id="structures" n="3.3">
+              <gloss xml:lang="it">Strutture</gloss>
+              <gloss xml:lang="en">Structures</gloss>
+            </category>
+          </category>
+        </taxonomy>
+      </classDecl>
+    </encodingDesc>
+  </teiHeader>
+  <text>
+    <body>
+      <ab/>
+    </body>
+  </text>
+</TEI>

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+# derived by the server at start-up and on every save
+public/data/manifest.json
+.lares-state.json
+.lares-backups/
