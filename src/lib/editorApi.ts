@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Issue } from './validateEntry.ts';
+import { STATIC_SITE } from '../utils/endpoints.ts';
 
 export interface ServerStatus {
   authRequired: boolean;
@@ -66,7 +67,8 @@ export async function apiFetch<T>(path: string, init: { method?: string; body?: 
   return data as T;
 }
 
-export const fetchStatus = () => apiFetch<ServerStatus>('/api/status');
+export const fetchStatus = (): Promise<ServerStatus> =>
+  STATIC_SITE ? Promise.reject(new ApiError(0, 'Static site: no server.')) : apiFetch<ServerStatus>('/api/status');
 
 export const verifyToken = () =>
   apiFetch<{ ok: boolean; githubAccess: { ok: boolean; detail: string } | null }>('/api/auth');

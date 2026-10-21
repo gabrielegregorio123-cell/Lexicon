@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import type { Language } from '../i18n/translations.ts';
 import type { LexiconEntry } from '../types/lexicon.ts';
 import { getSearchEngine, type SearchFacetFilters, type SearchResultItem } from '../utils/searchEngine.ts';
-import { searchRemote } from '../utils/searchClient.ts';
+import { hydrateEntries, searchRemote } from '../utils/searchClient.ts';
+import { STATIC_SITE } from '../utils/endpoints.ts';
 
 interface SearchViewProps {
   entries: LexiconEntry[];
@@ -98,9 +99,23 @@ export const SearchView: React.FC<SearchViewProps> = ({ entries, lang, initialQu
   // Full-text search runs on the server (every edition, always current); if it is unreachable
   // (static hosting) the browser falls back to its own, lighter index.
   const [remote, setRemote] = useState<{ results: SearchResultItem[]; total: number } | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [failed, setFailed] = useState(STATIC_SITE);
+  const [hydrated, setHydrated] = useState<LexiconEntry[] | null>(null);
   const [pending, setPending] = useState(true);
   useEffect(() => {
+    if (!failed) return;
+    let alive = true;
+    hydrateEntries(entries).then((h) => alive && setHydrated(h));
+    return () => {
+      alive = false;
+    };
+  }, [failed, entries]);
+
+  useEffect(() => {
+    if (STATIC_SITE) {
+      setPending(false);
+      return;
+    }
     const ctl = new AbortController();
     setPending(true);
     const timer = setTimeout(
@@ -142,7 +157,7 @@ export const SearchView: React.FC<SearchViewProps> = ({ entries, lang, initialQu
     return { realms: sort(realms), sources: sort(sources), authors: sort(authors), scripts: sort(scripts) };
   }, [entries]);
 
-  const local = useMemo(() => (failed ? getSearchEngine(entries).search(query, filters, lang) : null), [failed, entries, query, filters, lang]);
+  const local = useMemo(() => (failed ? getSearchEngine(hydrated ?? entries).search(query, filters, lang) : null), [failed, hydrated, entries, query, filters, lang]);
   const results = failed ? local ?? [] : remote?.results ?? [];
   const total = failed ? results.length : remote?.total ?? 0;
   const active = Boolean(query || filters.realm || filters.sourceType || filters.author || filters.scriptType || (filters.collection && filters.collection !== 'all'));

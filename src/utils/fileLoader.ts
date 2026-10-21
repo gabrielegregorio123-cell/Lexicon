@@ -1,5 +1,6 @@
 import type { LexiconEntry, ParseReport } from '../types/lexicon.ts';
 import { parseEpiDocXml } from './xmlParser.ts';
+import { asset, endpoints } from './endpoints.ts';
 
 export async function processXmlFiles(
   files: Array<{ name: string; content: string }>,
@@ -59,7 +60,7 @@ export async function loadCorpus(
 ): Promise<{ entries: LexiconEntry[]; report: ParseReport; version?: string }> {
   // Preferred: one bundled, compressed, ETag-cached request served by the app server.
   try {
-    const res = await fetch('/api/corpus', { cache: 'no-cache' });
+    const res = await fetch(endpoints.corpus(), { cache: 'no-cache' });
     if (res.ok && (res.headers.get('content-type') || '').includes('json')) {
       const { entries: slim, failed, version } = (await res.json()) as {
         version: string;
@@ -92,7 +93,7 @@ export async function loadCorpus(
     /* fall back to the per-file loader below (static hosting) */
   }
 
-  const manifestRes = await fetch(`/data/manifest.json?t=${Date.now()}`, { cache: 'no-store' });
+  const manifestRes = await fetch(`${asset('data/manifest.json')}?t=${Date.now()}`, { cache: 'no-store' });
   if (!manifestRes.ok) throw new Error(`manifest.json non raggiungibile (${manifestRes.status})`);
   const names: string[] = await manifestRes.json();
 
@@ -100,7 +101,7 @@ export async function loadCorpus(
   const files = await Promise.all(
     names.map(async (name) => {
       try {
-        const res = await fetch(`/data/${encodeURIComponent(name)}`, { cache: 'no-store' });
+        const res = await fetch(endpoints.raw(name), { cache: 'no-store' });
         if (!res.ok) return null;
         return { name, content: await res.text() };
       } catch {

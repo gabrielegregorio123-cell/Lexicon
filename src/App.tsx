@@ -4,9 +4,12 @@ import { DEFAULT_LANGUAGE, isLanguage, type Language } from './i18n/translations
 import type { LexiconEntry } from './types/lexicon.ts';
 import { loadCorpus } from './utils/fileLoader.ts';
 import { clearBodyCache } from './utils/entryBody.ts';
+import { STATIC_SITE } from './utils/endpoints.ts';
 import { exportDatasetAsJSON } from './utils/csvExport.ts';
 import { Sidebar } from './components/Sidebar.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { AccessGate } from './components/AccessGate.tsx';
+import { GATE_ACTIVE, isUnlocked } from './lib/gate.ts';
 import { Footer } from './components/Footer.tsx';
 import { HomeView } from './views/HomeView.tsx';
 import { LexiconListView } from './views/LexiconListView.tsx';
@@ -60,6 +63,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
+  const [unlocked, setUnlocked] = useState(() => !GATE_ACTIVE || isUnlocked());
   const versionRef = useRef<string | undefined>(undefined);
 
   const reloadEntries = useCallback(async () => {
@@ -78,12 +82,13 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    reloadEntries();
-  }, [reloadEntries]);
+    if (unlocked) reloadEntries(); // nothing is fetched until the password has been given
+  }, [reloadEntries, unlocked]);
 
   // Pick up changes made elsewhere (another editor's save, a pull from GitHub): a tiny version
   // check when the tab comes back to the foreground and every few minutes; reload only if it differs.
   useEffect(() => {
+    if (STATIC_SITE) return; // a static site only changes when it is rebuilt
     const check = async () => {
       try {
         const res = await fetch('/api/corpus/version', { cache: 'no-store' });
@@ -212,6 +217,8 @@ export default function App() {
   };
 
   const wide = route.main === 'editor';
+
+  if (!unlocked) return <AccessGate lang={lang} onLang={changeLang} onUnlock={() => setUnlocked(true)} />;
 
   return (
     <div className="min-h-screen bg-transparent text-ink">

@@ -4,6 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import type { LexiconEntry } from '../types/lexicon.ts';
+import { endpoints } from './endpoints.ts';
 
 const bodies = new Map<string, Promise<Record<string, string>>>();
 
@@ -16,7 +17,7 @@ export function clearBodyCache() {
 export function fetchEntryBody(id: string): Promise<Record<string, string>> {
   let p = bodies.get(id);
   if (!p) {
-    p = fetch(`/api/entries/${encodeURIComponent(id)}/body`, { cache: 'no-cache' }).then(async (res) => {
+    p = fetch(endpoints.body(id), { cache: 'no-cache' }).then(async (res) => {
       if (!res.ok) throw new Error(`Body ${id}: ${res.status}`);
       return ((await res.json()) as { sections: Record<string, string> }).sections;
     });
@@ -28,7 +29,7 @@ export function fetchEntryBody(id: string): Promise<Record<string, string>> {
 
 /** The entry's source file. */
 export async function fetchRawXml(fileName: string): Promise<string> {
-  const res = await fetch(`/data/${encodeURIComponent(fileName)}`, { cache: 'no-cache' });
+  const res = await fetch(endpoints.raw(fileName), { cache: 'no-cache' });
   if (!res.ok) throw new Error(`${fileName}: ${res.status}`);
   return res.text();
 }

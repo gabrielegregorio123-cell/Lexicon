@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ── Design tokens ─────────────────────────────────────────────────────────
-   Same visual language as ILA: warm parchment, Garamond text, teal accent. */
+   Cool paper white, Garamond text, petrol and slate from the LARES logo. */
 :root {
   /* LARES logo: deep petrol blue + pale slate, on cool paper white */
   --bg: #fafbfb;
@@ -286,7 +286,7 @@
     letter-spacing: -0.005em;
     color: var(--ink);
   }
-  /* Short ornamental rule under page titles (ILA's "ornament-rule") */
+  /* Short two-tone rule under page titles */
   .page-title::after {
     content: "";
     display: block;

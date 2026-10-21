@@ -16,6 +16,7 @@ import {
 import { EDITION_LANGS, ENTRY_KINDS, buildEntryTemplate, fileNameFor, type EditionLang, type EntryKind } from '../lib/entryTemplate.ts';
 import { EntryEditor } from '../components/EntryEditor.tsx';
 import { useRawXml } from '../utils/entryBody.ts';
+import { asset } from '../utils/endpoints.ts';
 
 interface Props {
   entries: LexiconEntry[];
@@ -243,7 +244,7 @@ const Login: React.FC<{ lang: Language; error?: string; onLogin: (t: string) => 
   const [value, setValue] = useState('');
   return (
     <div className="mx-auto flex max-w-sm flex-col items-center gap-9 py-4 text-center">
-      <img src="/brand/emblem.webp" alt="" width={720} height={914} className="emblem h-60 w-auto select-none" draggable={false} />
+      <img src={asset('brand/emblem.webp')} alt="" width={720} height={914} className="emblem h-60 w-auto select-none" draggable={false} />
       <div className="space-y-2">
         <p className="eyebrow">{t.eyebrow}</p>
         <h1 className="text-4xl font-medium leading-tight">{t.loginTitle}</h1>
