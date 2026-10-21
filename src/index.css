@@ -415,23 +415,21 @@ mark {
   mix-blend-mode: multiply;
   filter: hue-rotate(14deg);
 }
-/* Gold filigree serpent beside the sidebar: one seamless tile repeated vertically and moved with the
-   page (see App), so it runs on for ever in both directions. Matte, translucent, behind the content. */
+/* Gold filigree serpent beside the sidebar: one seamless tile repeated down the whole page, so it
+   runs on for ever. It lives inside the page and scrolls with it natively (no script, no lag). */
 .garland {
   display: none;
-  position: fixed;
+  position: absolute;
   top: 0;
+  bottom: 0;
   left: 15.6rem;
   width: 6.4rem;
-  height: 100vh;
   background-repeat: repeat-y;
   background-size: 6.4rem auto;
-  background-position: center 0;
+  background-position: center top;
   opacity: 0.5;
   pointer-events: none;
-  z-index: 0;
-  -webkit-mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent);
-  mask-image: linear-gradient(transparent, #000 9%, #000 91%, transparent);
+  z-index: -1;
 }
 @media (min-width: 1280px) {
   .garland { display: block; }

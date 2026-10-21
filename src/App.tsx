@@ -65,7 +65,6 @@ export default function App() {
 
   const [unlocked, setUnlocked] = useState(() => !GATE_ACTIVE || isUnlocked());
   const versionRef = useRef<string | undefined>(undefined);
-  const garlandRef = useRef<HTMLDivElement>(null);
 
   const reloadEntries = useCallback(async () => {
     try {
@@ -85,24 +84,6 @@ export default function App() {
   useEffect(() => {
     if (unlocked) reloadEntries(); // nothing is fetched until the password has been given
   }, [reloadEntries, unlocked]);
-
-  // The garland moves with the page (a little slower, for depth); the tile repeats, so it never ends.
-  useEffect(() => {
-    let frame = 0;
-    const move = () => {
-      frame = 0;
-      if (garlandRef.current) garlandRef.current.style.backgroundPositionY = `${-window.scrollY * 0.7}px`;
-    };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(move);
-    };
-    move();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [unlocked]);
 
   // Pick up changes made elsewhere (another editor's save, a pull from GitHub): a tiny version
   // check when the tab comes back to the foreground and every few minutes; reload only if it differs.
@@ -248,9 +229,9 @@ export default function App() {
         lexiconCount={lexiconCount}
         chapterCount={chapterCount}
       />
-      {/* gold filigree serpent, fixed beside the sidebar: a watermark that follows the whole site */}
-      <div ref={garlandRef} aria-hidden className="garland" style={{ backgroundImage: `url(${asset('brand/garland-tile.svg')})` }} />
       <div className="relative z-[1] flex min-h-screen flex-col lg:pl-[16.5rem] min-[1280px]:pl-[23rem]">
+        {/* gold filigree serpent: part of the page, so it scrolls natively (no script, always in step) */}
+        <div aria-hidden className="garland" style={{ backgroundImage: `url(${asset('brand/garland-tile.svg')})` }} />
         <main className={`mx-auto w-full flex-1 px-6 py-12 sm:px-10 lg:py-20 ${wide ? 'max-w-none xl:px-14' : 'max-w-4xl'}`}><ErrorBoundary lang={lang} resetKey={currentHash}>{renderView()}</ErrorBoundary></main>
         <Footer lang={lang} entryCount={entries.length} onExportJson={() => exportDatasetAsJSON(entries)} wide={wide} />
       </div>
