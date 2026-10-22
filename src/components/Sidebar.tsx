@@ -21,6 +21,7 @@ const LABELS = {
     bibliography: 'Bibliography',
     team: 'Project & team',
     contact: 'Work with us',
+    site: 'LARES website',
     menu: 'Menu',
   },
   it: {
@@ -31,6 +32,7 @@ const LABELS = {
     bibliography: 'Bibliografia',
     team: 'Progetto e gruppo',
     contact: 'Collabora con noi',
+    site: 'Sito LARES',
     menu: 'Menu',
   },
   pl: {
@@ -41,6 +43,7 @@ const LABELS = {
     bibliography: 'Bibliografia',
     team: 'Projekt i zespół',
     contact: 'Współpracuj z nami',
+    site: 'Strona LARES',
     menu: 'Menu',
   },
 } as const;
@@ -80,6 +83,19 @@ const Panel: React.FC<SidebarProps & { onNavigate?: () => void }> = ({
         <Link href="#/team" match="team" label={t.team} />
         <Link href="#/contact" match="contact" label={t.contact} />
       </nav>
+
+      {/* the project's own website (University of Bologna), opened in a new tab */}
+      <div className={`${compact ? 'my-3' : 'my-5'} h-px bg-line`} />
+      <a
+        href="https://site.unibo.it/lares/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={compact ? 'nav-link nav-link-compact' : 'nav-link'}
+        title="site.unibo.it/lares"
+      >
+        <span>{t.site}</span>
+        <small aria-hidden className="!text-[1rem]">↗</small>
+      </a>
 
 
       <div className="mt-auto space-y-4 px-2 pt-8 text-[0.95rem] text-faint">
