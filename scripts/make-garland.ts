@@ -56,13 +56,6 @@ for (let y = -CHEVRON; y <= H + CHEVRON; y += CHEVRON) {
   chevrons += `<path d="M${pt(1, 4)}L${pt(0, -3)}L${pt(-1, 4)}"/>`;
 }
 
-// a fine petrol thread winding the other way round the body, crossing it twice per wave
-const thread = (() => {
-  const f = (n: number) => n.toFixed(1);
-  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${f(W - p.x)},${f(p.y)}`).join('');
-  return `<path d="${d}" stroke="${PETROL}" stroke-width="1.3" stroke-linecap="round" opacity=".8"/>`;
-})();
-
 // one lozenge per tile, set on a crossing (sin = 0) in the middle of the tile
 const node = (() => {
   const y = H / 2;
@@ -74,7 +67,6 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" wid
   <path fill="${GOLD}" fill-rule="evenodd" d="${ring(BODY)}${ring(BODY - RIM * 2)}"/>
   <g fill="${GOLD}">${dots}</g>
   <g stroke="${GOLD}" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity=".85">${chevrons}</g>
-  ${thread}
   ${node}
 </svg>
 `;

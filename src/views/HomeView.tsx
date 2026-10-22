@@ -156,7 +156,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ lang, entries }) => {
       <section className="space-y-9 pt-4">
         <p className="eyebrow">{c.eyebrow}</p>
         <h1 className="text-[3.4rem] font-medium leading-[0.98] tracking-tight sm:text-7xl lg:text-8xl">
-          {c.title[0]} <span className="text-brand">{c.title[1]}</span>
+          <span className="text-brand">{c.title[0].replace(/ and$/, '')}</span>{c.title[0].endsWith(' and') ? ' and ' : ' '}
+          <span className="text-brand">{c.title[1]}</span>
         </h1>
         <p className="max-w-xl text-xl italic leading-snug text-muted sm:text-2xl">{c.lead}</p>
         <div className="flex flex-wrap items-center gap-x-8 gap-y-4 pt-1">
