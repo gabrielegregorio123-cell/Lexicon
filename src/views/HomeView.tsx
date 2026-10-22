@@ -182,7 +182,7 @@ export const HomeView: React.FC<HomeViewProps> = ({ lang, entries }) => {
 
       {/* The headwords, in their own scripts: loosely scattered, like words on a squeeze */}
       {tapestry.length > 0 && (
-        <section className="rounded-[2rem] border border-line bg-slate-soft px-8 py-14 sm:px-12">
+        <section className="frame-raised px-9 py-14 sm:px-14">
           <ul className="flex flex-wrap items-start justify-center gap-x-9 gap-y-7">
             {tapestry.map((e) => {
               const h = hash(e.id);
@@ -193,7 +193,8 @@ export const HomeView: React.FC<HomeViewProps> = ({ lang, entries }) => {
                   <a
                     href={`#/entry/${e.id}`}
                     title={e.title}
-                    lang={e.xmlLang}
+                    // no lang="la": EB Garamond's Latin locale draws the lowercase u like a v
+                    lang={e.xmlLang === 'la' ? undefined : e.xmlLang}
                     className={`${SIZES[h % SIZES.length]} ${TONES[(h >>> 3) % TONES.length]} leading-tight transition-colors hover:!text-ink`}
                   >
                     {e.originalScript}

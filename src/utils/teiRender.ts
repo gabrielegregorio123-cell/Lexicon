@@ -187,8 +187,9 @@ export function renderNode(node: any, ctx: RenderContext): string {
       return `<em>${inner}</em>`;
     }
     case 'foreign': {
+      // Latin is left unmarked: EB Garamond's Latin locale draws the lowercase u like a v
       const lang = attr(node, 'xml:lang');
-      return `<em class="tei-foreign"${lang ? ` lang="${escapeHtml(lang)}"` : ''}>${renderChildren(node, ctx)}</em>`;
+      return `<em class="tei-foreign"${lang && lang !== 'la' ? ` lang="${escapeHtml(lang)}"` : ''}>${renderChildren(node, ctx)}</em>`;
     }
     case 'title':
       return `<em class="tei-title">${renderChildren(node, ctx)}</em>`;
