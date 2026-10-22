@@ -4,6 +4,7 @@ import type { LexiconEntry } from '../types/lexicon.ts';
 import { getSearchEngine, type SearchFacetFilters, type SearchResultItem } from '../utils/searchEngine.ts';
 import { hydrateEntries, searchRemote } from '../utils/searchClient.ts';
 import { STATIC_SITE } from '../utils/endpoints.ts';
+import { SearchBox } from '../components/SearchBox.tsx';
 
 interface SearchViewProps {
   entries: LexiconEntry[];
@@ -176,15 +177,19 @@ export const SearchView: React.FC<SearchViewProps> = ({ entries, lang, initialQu
       </header>
 
       <div className="no-print space-y-8">
-        <div className="flex items-center gap-4 border-b border-line pb-2.5 transition-colors focus-within:border-brand">
-          <input
+        <div className="relative flex items-center gap-4 border-b border-line pb-2.5 transition-colors focus-within:border-brand">
+          <SearchBox
             type="search"
             autoFocus
+            entries={entries}
+            lang={lang}
             value={query}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={setQ}
+            onPickQuery={setQ}
+            onPickEntry={(id) => (window.location.hash = `#/entry/${id}`)}
             placeholder={t.placeholder}
+            ariaLabel={t.title}
             className="min-w-0 flex-1 bg-transparent text-2xl text-ink outline-none placeholder:italic placeholder:text-faint"
-            aria-label={t.title}
           />
           {active && (
             <button

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { Language } from '../i18n/translations.ts';
 import type { LexiconEntry } from '../types/lexicon.ts';
+import { SearchBox } from '../components/SearchBox.tsx';
 
 interface HomeViewProps {
   lang: Language;
@@ -166,13 +167,17 @@ export const HomeView: React.FC<HomeViewProps> = ({ lang, entries }) => {
             {c.cta2}
           </a>
         </div>
-        <form onSubmit={go} className="flex max-w-md items-center gap-4 border-b border-line pb-2 transition-colors focus-within:border-brand">
-          <input
+        <form onSubmit={go} className="relative flex max-w-md items-center gap-4 border-b border-line pb-2 transition-colors focus-within:border-brand">
+          <SearchBox
+            entries={entries}
+            lang={lang}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={setQuery}
+            onPickQuery={(q) => (window.location.hash = `#/search?q=${encodeURIComponent(q)}`)}
+            onPickEntry={(id) => (window.location.hash = `#/entry/${id}`)}
             placeholder={c.searchPh}
+            ariaLabel={c.search}
             className="min-w-0 flex-1 bg-transparent text-lg italic text-ink outline-none placeholder:text-faint"
-            aria-label={c.search}
           />
           <button type="submit" className="btn !border-transparent !px-0 hover:!bg-transparent">
             {c.search} →
