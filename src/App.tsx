@@ -219,7 +219,7 @@ export default function App() {
   const wide = route.main === 'editor';
   // While reading an entry the side bars slim down and the text gets the room
   const compact = route.main === 'entry';
-  const layoutVars = { '--side-w': compact ? '11rem' : '14.5rem', '--garland-w': compact ? '4rem' : '6.4rem' } as React.CSSProperties;
+  const layoutVars = { '--side-w': compact ? '11rem' : '14.5rem', '--garland-w': compact ? '2.9rem' : '4.4rem', '--garland-o': compact ? 0.38 : 0.5 } as React.CSSProperties;
 
   if (!unlocked) return <AccessGate lang={lang} onLang={changeLang} onUnlock={() => setUnlocked(true)} />;
 
@@ -234,7 +234,7 @@ export default function App() {
         compact={compact}
       />
       <div
-        className="relative z-[1] flex min-h-screen flex-col transition-[padding] duration-200 lg:pl-[calc(var(--side-w)+2rem)] min-[1280px]:pl-[calc(var(--side-w)+var(--garland-w)+2.5rem)]"
+        className="relative z-[1] flex min-h-screen flex-col transition-[padding] duration-200 lg:pl-[calc(var(--side-w)+2rem)] min-[1440px]:pl-[calc(var(--side-w)+var(--garland-w)+2.5rem)]"
         style={layoutVars}
       >
         {/* gold filigree serpent: part of the page, so it scrolls natively (no script, always in step) */}

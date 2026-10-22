@@ -4,7 +4,7 @@
    Cool paper white, Garamond text, petrol and slate from the LARES logo. */
 :root {
   --side-w: 14.5rem;
-  --garland-w: 6.4rem;
+  --garland-w: 4.4rem;
   /* LARES logo: deep petrol blue + pale slate, on cool paper white */
   --bg: #fafbfb;
   --surface: #ffffff;
@@ -456,11 +456,24 @@ mark {
   background-repeat: repeat-y;
   background-size: var(--garland-w) auto;
   background-position: center top;
-  opacity: 0.5;
+  opacity: var(--garland-o, 0.5);
   pointer-events: none;
   z-index: -1;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 7rem, #000 calc(100% - 7rem), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 7rem, #000 calc(100% - 7rem), transparent);
 }
-@media (min-width: 1280px) {
+/* a hairline gold margin rule beside the serpent, like a manuscript's */
+.garland::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -0.7rem;
+  width: 1px;
+  background: #a98a3d;
+  opacity: 0.7;
+}
+@media (min-width: 1440px) {
   .garland { display: block; }
 }
 @media print {
