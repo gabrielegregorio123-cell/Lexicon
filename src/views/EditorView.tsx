@@ -15,6 +15,7 @@ import {
 } from '../lib/editorApi.ts';
 import { EDITION_LANGS, ENTRY_KINDS, buildEntryTemplate, fileNameFor, type EditionLang, type EntryKind } from '../lib/entryTemplate.ts';
 import { EntryEditor } from '../components/EntryEditor.tsx';
+import { SectionEditor } from '../components/SectionEditor.tsx';
 import { useRawXml } from '../utils/entryBody.ts';
 import { asset } from '../utils/endpoints.ts';
 
@@ -396,8 +397,11 @@ const EntryTable: React.FC<{ lang: Language; entries: LexiconEntry[]; onChanged:
                   <td className="hidden text-muted xl:table-cell">{e.authorShort}</td>
                   <td className="hidden text-muted xl:table-cell">{marks}</td>
                   <td className="whitespace-nowrap text-right">
-                    <a href={`#/editor/edit/${e.id}`} className="btn !py-1">
-                      {t.edit}
+                    <a href={`#/editor/sections/${e.id}`} className="btn btn-primary !py-1" title={tr(lang, 'Editor a sezioni', 'Section editor', 'Edytor sekcji')}>
+                      {tr(lang, 'Sezioni', 'Sections', 'Sekcje')}
+                    </a>{' '}
+                    <a href={`#/editor/edit/${e.id}`} className="btn !py-1" title={tr(lang, 'Editor XML', 'XML editor', 'Edytor XML')}>
+                      XML
                     </a>{' '}
                     <button type="button" className="btn btn-danger !py-1" onClick={() => remove(e)}>
                       {t.del}
@@ -507,6 +511,14 @@ const EditLoader: React.FC<{ entry: LexiconEntry; lang: Language; entries: Lexic
   return <EntryEditor lang={lang} entries={entries} fileName={entry.fileName} initialXml={raw.value} isNew={false} onSaved={onSaved} />;
 };
 
+/** Come EditLoader, ma apre l'editor a sezioni (derivato dall'Officina di ILA). */
+const SectionsLoader: React.FC<{ entry: LexiconEntry; lang: Language; entries: LexiconEntry[]; onSaved: () => Promise<void> | void }> = ({ entry, lang, entries, onSaved }) => {
+  const raw = useRawXml(entry, true);
+  if (raw.error) return <Notice title={T[lang].notFound} text={raw.error} />;
+  if (raw.value === null) return <p className="py-24 text-center text-sm text-faint">{T[lang].checking}</p>;
+  return <SectionEditor lang={lang} entries={entries} fileName={entry.fileName} initialXml={raw.value} onSaved={onSaved} />;
+};
+
 // ── View ──────────────────────────────────────────────────────────────────────
 
 export const EditorView: React.FC<Props> = ({ entries, lang, sub, param, onSaved }) => {
@@ -536,6 +548,12 @@ export const EditorView: React.FC<Props> = ({ entries, lang, sub, param, onSaved
       );
     }
     return <Wizard lang={lang} entries={entries} onCreate={(fileName, xml) => setDraft({ fileName, xml })} />;
+  }
+
+  if (sub === 'sections') {
+    const entry = entries.find((e) => e.id.toLowerCase() === param.toLowerCase());
+    if (!entry) return <Notice title={t.notFound} text={param} />;
+    return <SectionsLoader key={entry.fileName} entry={entry} lang={lang} entries={entries} onSaved={onSaved} />;
   }
 
   if (sub === 'edit') {
