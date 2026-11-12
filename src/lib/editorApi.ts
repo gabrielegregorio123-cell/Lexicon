@@ -96,6 +96,8 @@ let statusOnce: Promise<ServerStatus | null> | null = null;
 export function useCanEdit(): boolean {
   const [can, setCan] = useState(false);
   useEffect(() => {
+    // Sito statico: l'editor lavora nel browser e non richiede accesso.
+    if (STATIC_SITE) return setCan(true);
     let alive = true;
     statusOnce ||= fetchStatus().catch(() => null);
     statusOnce.then((s) => alive && setCan(Boolean(s && s.editingEnabled && (!s.authRequired || getToken()))));

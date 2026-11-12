@@ -7,6 +7,8 @@ import { downloadFile } from '../utils/csvExport.ts';
 import { browserParse, validateEntryXml } from '../lib/validateEntry.ts';
 import { entryIdFromFileName } from '../lib/entryTemplate.ts';
 import { ApiError, saveEntry } from '../lib/editorApi.ts';
+import { STATIC_SITE } from '../utils/endpoints.ts';
+import { clearDraft, copyText, githubEditUrl, loadDraft, saveDraft } from '../lib/staticEditing.ts';
 import {
   addBibItem,
   addBibliography,
@@ -138,11 +140,27 @@ const SectionHeader: React.FC<{ title: string; desc: string; children?: React.Re
 
 export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initialXml, onSaved }) => {
   const L = (it: string, en: string, pl: string) => tr(lang, it, en, pl);
-  const [xml, setXmlRaw] = useState(initialXml);
+  // Sito statico: si riparte dalla bozza salvata in questo browser, se c'è.
+  const [startDraft] = useState(() => {
+    if (!STATIC_SITE) return null;
+    const d = loadDraft(fileName);
+    if (d && d.xml === initialXml) {
+      clearDraft(fileName); // già pubblicata
+      return null;
+    }
+    return d;
+  });
+  const [xml, setXmlRaw] = useState(startDraft?.xml ?? initialXml);
   const [baseline, setBaseline] = useState(initialXml);
   const [active, setActive] = useState<string>('titles');
   const [saving, setSaving] = useState(false);
-  const [banner, setBanner] = useState<{ kind: 'ok' | 'warn' | 'error'; text: string } | null>(null);
+  const [banner, setBanner] = useState<{ kind: 'ok' | 'warn' | 'error'; text: string } | null>(() =>
+    startDraft
+      ? startDraft.base !== initialXml
+        ? { kind: 'warn', text: tr(lang, `Bozza del ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} ripristinata, ma il file pubblicato è cambiato nel frattempo: controlla prima di pubblicare.`, `Draft from ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} restored, but the published file has changed since: check before publishing.`, `Przywrócono szkic z ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })}, ale opublikowany plik się zmienił: sprawdź przed publikacją.`) }
+        : { kind: 'ok', text: tr(lang, `Bozza del ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} ripristinata da questo browser.`, `Draft from ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} restored from this browser.`, `Przywrócono szkic z ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} z tej przeglądarki.`) }
+      : null
+  );
   const [revWho, setRevWho] = useState(() => {
     try {
       return localStorage.getItem('lares_editor_who') || '';
@@ -219,8 +237,15 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
   }, [entries]);
 
   const dirty = xml !== baseline;
+
+  // Sito statico: ogni modifica resta come bozza nel browser (nessun server su cui salvare).
   useEffect(() => {
-    if (!dirty) return;
+    if (!STATIC_SITE) return;
+    const t = setTimeout(() => (xml === initialXml ? clearDraft(fileName) : saveDraft(fileName, { xml, base: initialXml })), 400);
+    return () => clearTimeout(t);
+  }, [xml, fileName, initialXml]);
+  useEffect(() => {
+    if (!dirty || STATIC_SITE) return; // sul sito statico la bozza è già salvata nel browser
     const h = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener('beforeunload', h);
     return () => window.removeEventListener('beforeunload', h);
@@ -298,6 +323,21 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
         if (revWho.trim()) localStorage.setItem('lares_editor_who', revWho.trim());
       } catch {
         /* preferenza non salvata */
+      }
+      if (STATIC_SITE) {
+        // Nessun server: copia l'XML e apre la pagina di modifica del file su GitHub.
+        saveDraft(fileName, { xml: finalXml, base: initialXml });
+        setXmlRaw(finalXml);
+        setRevNote('');
+        const copied = await copyText(finalXml);
+        window.open(githubEditUrl(fileName), '_blank', 'noopener');
+        setBanner({
+          kind: copied ? 'ok' : 'warn',
+          text: copied
+            ? L('XML copiato. Nella pagina GitHub appena aperta seleziona tutto il contenuto (⌘A), incolla (⌘V) e premi «Commit changes». La bozza resta in questo browser finché il sito non si aggiorna.', 'XML copied. In the GitHub page just opened select all (⌘A), paste (⌘V) and press “Commit changes”. The draft stays in this browser until the site updates.', 'XML skopiowany. Na otwartej stronie GitHuba zaznacz wszystko (⌘A), wklej (⌘V) i naciśnij „Commit changes”. Szkic zostaje w tej przeglądarce do aktualizacji strony.')
+            : L('Non riesco a copiare negli appunti: usa «Scarica» e carica il file nella pagina GitHub appena aperta.', 'Could not copy to the clipboard: use “Download” and upload the file in the GitHub page just opened.', 'Nie udało się skopiować: użyj „Pobierz” i wgraj plik na otwartej stronie GitHuba.'),
+        });
+        return;
       }
       const res = await saveEntry(fileName, finalXml, false);
       setXmlRaw(finalXml);
@@ -680,7 +720,7 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
         <div className="min-w-[14rem] flex-1">
           <h1 className="truncate font-serif text-3xl font-medium">{plain(m.titles[0]?.text || '') || fileName}</h1>
           <p className="font-mono text-xs text-faint">
-            {fileName} · <span className={dirty ? 'text-warn' : 'text-ok'}>{dirty ? L('Modifiche non salvate', 'Unsaved changes', 'Niezapisane zmiany') : L('Tutto salvato', 'All saved', 'Wszystko zapisane')}</span>
+            {fileName} · <span className={dirty ? 'text-warn' : 'text-ok'}>{dirty ? (STATIC_SITE ? L('Bozza in questo browser, non pubblicata', 'Draft in this browser, not published', 'Szkic w tej przeglądarce, nieopublikowany') : L('Modifiche non salvate', 'Unsaved changes', 'Niezapisane zmiany')) : L('Tutto salvato', 'All saved', 'Wszystko zapisane')}</span>
             {changedSections.length > 0 && <> · {changedSections.map((s) => s.label).join(', ')}</>}
           </p>
         </div>
@@ -693,9 +733,11 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
           </button>
           <input className="field !w-28 !py-1.5 !text-xs" value={revWho} onChange={(e) => setRevWho(e.target.value)} placeholder={L('Sigla', 'Initials', 'Inicjały')} aria-label={L('Sigla', 'Initials', 'Inicjały')} />
           <input className="field !w-56 !py-1.5 !text-xs" value={revNote} onChange={(e) => setRevNote(e.target.value)} placeholder={L('Nota di revisione (facoltativa)', 'Revision note (optional)', 'Notatka o zmianie (opcjonalna)')} aria-label="revision note" />
-          <a className="btn" href={`#/editor/edit/${entryIdFromFileName(fileName)}`} title={L('Editor XML completo (salva prima)', 'Full XML editor (save first)', 'Pełny edytor XML (najpierw zapisz)')}>
-            XML
-          </a>
+          {!STATIC_SITE && (
+            <a className="btn" href={`#/editor/edit/${entryIdFromFileName(fileName)}`} title={L('Editor XML completo (salva prima)', 'Full XML editor (save first)', 'Pełny edytor XML (najpierw zapisz)')}>
+              XML
+            </a>
+          )}
           <button type="button" className="btn" onClick={() => downloadFile(xml, fileName, 'application/xml')}>
             {L('Scarica', 'Download', 'Pobierz')}
           </button>
@@ -703,7 +745,7 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
             {L('Ripristina', 'Revert', 'Przywróć')}
           </button>
           <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving || (!dirty && !revNote.trim())}>
-            {saving ? L('Salvataggio…', 'Saving…', 'Zapisywanie…') : L('Salva', 'Save', 'Zapisz')}
+            {saving ? L('Salvataggio…', 'Saving…', 'Zapisywanie…') : STATIC_SITE ? L('Pubblica su GitHub', 'Publish to GitHub', 'Opublikuj na GitHubie') : L('Salva', 'Save', 'Zapisz')}
             {errorCount > 0 && !saving && <span className="rounded bg-danger px-1.5 text-[0.625rem] text-white">{errorCount}</span>}
           </button>
         </div>

@@ -123,7 +123,7 @@ export const EntryDetailView: React.FC<EntryDetailViewProps> = ({ entry, lang, t
             {tr(lang, 'Stampa', 'Print', 'Drukuj')}
           </button>
           {canEdit && (
-            <a href={`#/editor/edit/${entry.id}`} className="btn btn-primary">
+            <a href={`#/editor/sections/${entry.id}`} className="btn btn-primary">
               {tr(lang, 'Modifica', 'Edit', 'Edytuj')}
             </a>
           )}
@@ -278,7 +278,7 @@ export const EntryDetailView: React.FC<EntryDetailViewProps> = ({ entry, lang, t
           <div className="flex items-center justify-between border-b border-line bg-surface-2 px-4 py-2 font-mono text-xs text-faint">
             <span>{entry.fileName} — EpiDoc TEI XML</span>
             {canEdit && (
-              <a href={`#/editor/edit/${entry.id}`} className="text-brand hover:underline">
+              <a href={`#/editor/sections/${entry.id}`} className="text-brand hover:underline">
                 {tr(lang, 'Apri nell’editor', 'Open in editor', 'Otwórz w edytorze')}
               </a>
             )}

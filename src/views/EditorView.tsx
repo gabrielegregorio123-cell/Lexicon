@@ -17,7 +17,8 @@ import { EDITION_LANGS, ENTRY_KINDS, buildEntryTemplate, fileNameFor, type Editi
 import { EntryEditor } from '../components/EntryEditor.tsx';
 import { SectionEditor } from '../components/SectionEditor.tsx';
 import { useRawXml } from '../utils/entryBody.ts';
-import { asset } from '../utils/endpoints.ts';
+import { asset, STATIC_SITE } from '../utils/endpoints.ts';
+import { draftFiles, githubRepo } from '../lib/staticEditing.ts';
 
 interface Props {
   entries: LexiconEntry[];
@@ -184,10 +185,10 @@ function lsGet(key: string, fallback = ''): string {
 
 // ── Session gate ──────────────────────────────────────────────────────────────
 
-type Gate = { state: 'checking' } | { state: 'offline' } | { state: 'readonly' } | { state: 'login'; error?: string } | { state: 'ready'; status: ServerStatus };
+type Gate = { state: 'static' } | { state: 'checking' } | { state: 'offline' } | { state: 'readonly' } | { state: 'login'; error?: string } | { state: 'ready'; status: ServerStatus };
 
 function useEditorGate(): [Gate, (token: string) => Promise<void>, () => void] {
-  const [gate, setGate] = useState<Gate>({ state: 'checking' });
+  const [gate, setGate] = useState<Gate>(STATIC_SITE ? { state: 'static' } : { state: 'checking' });
 
   const check = async () => {
     try {
@@ -209,7 +210,7 @@ function useEditorGate(): [Gate, (token: string) => Promise<void>, () => void] {
   };
 
   useEffect(() => {
-    void check();
+    if (!STATIC_SITE) void check();
   }, []);
 
   const login = async (token: string) => {
@@ -342,6 +343,7 @@ const GithubPanel: React.FC<{ lang: Language; status: ServerStatus; onReload: ()
 
 const EntryTable: React.FC<{ lang: Language; entries: LexiconEntry[]; onChanged: () => Promise<void> | void }> = ({ lang, entries, onChanged }) => {
   const t = T[lang];
+  const drafts = useMemo(() => new Set(STATIC_SITE ? draftFiles() : []), []);
   const [filter, setFilter] = useState('');
   const [note, setNote] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -391,7 +393,10 @@ const EntryTable: React.FC<{ lang: Language; entries: LexiconEntry[]; onChanged:
                     <a href={`#/entry/${e.id}`} className="text-lg hover:text-brand">
                       {e.title}
                     </a>
-                    <div className="font-mono text-xs text-faint">{e.fileName}</div>
+                    <div className="font-mono text-xs text-faint">
+                      {e.fileName}
+                      {drafts.has(e.fileName) && <span className="ml-2 text-warn">· {tr(lang, 'bozza non pubblicata', 'unpublished draft', 'nieopublikowany szkic')}</span>}
+                    </div>
                   </td>
                   <td className="text-muted">{e.collection === 'chapter' ? (tr(lang, 'Capitolo', 'Chapter', 'Rozdział')) : 'Lexicon'}</td>
                   <td className="hidden text-muted xl:table-cell">{e.authorShort}</td>
@@ -400,12 +405,16 @@ const EntryTable: React.FC<{ lang: Language; entries: LexiconEntry[]; onChanged:
                     <a href={`#/editor/sections/${e.id}`} className="btn btn-primary !py-1" title={tr(lang, 'Editor a sezioni', 'Section editor', 'Edytor sekcji')}>
                       {tr(lang, 'Sezioni', 'Sections', 'Sekcje')}
                     </a>{' '}
-                    <a href={`#/editor/edit/${e.id}`} className="btn !py-1" title={tr(lang, 'Editor XML', 'XML editor', 'Edytor XML')}>
-                      XML
-                    </a>{' '}
-                    <button type="button" className="btn btn-danger !py-1" onClick={() => remove(e)}>
-                      {t.del}
-                    </button>
+                    {!STATIC_SITE && (
+                      <>
+                        <a href={`#/editor/edit/${e.id}`} className="btn !py-1" title={tr(lang, 'Editor XML', 'XML editor', 'Edytor XML')}>
+                          XML
+                        </a>{' '}
+                        <button type="button" className="btn btn-danger !py-1" onClick={() => remove(e)}>
+                          {t.del}
+                        </button>
+                      </>
+                    )}
                   </td>
                 </tr>
               );
@@ -526,6 +535,32 @@ export const EditorView: React.FC<Props> = ({ entries, lang, sub, param, onSaved
   const [gate, login, logout] = useEditorGate();
   const [draft, setDraft] = useState<{ fileName: string; xml: string } | null>(null);
 
+  if (gate.state === 'static') {
+    if (entries.length === 0) return <p className="py-24 text-center text-sm text-faint">{t.checking}</p>;
+    if (sub === 'sections') {
+      const entry = entries.find((e) => e.id.toLowerCase() === param.toLowerCase());
+      if (!entry) return <Notice title={t.notFound} text={param} />;
+      return <SectionsLoader key={entry.fileName} entry={entry} lang={lang} entries={entries} onSaved={onSaved} />;
+    }
+    return (
+      <div className="space-y-8">
+        <header className="max-w-2xl space-y-3">
+          <p className="eyebrow">{t.eyebrow}</p>
+          <h1 className="page-title">{t.title}</h1>
+          <p className="font-serif text-xl text-muted">
+            {tr(
+              lang,
+              'Le modifiche restano come bozza in questo browser. «Pubblica su GitHub» copia l’XML e apre il file su GitHub: incolla e conferma il commit con il tuo account.',
+              'Changes stay as a draft in this browser. “Publish to GitHub” copies the XML and opens the file on GitHub: paste it and commit with your account.',
+              'Zmiany zostają jako szkic w tej przeglądarce. „Opublikuj na GitHubie” kopiuje XML i otwiera plik na GitHubie: wklej go i zatwierdź commit swoim kontem.'
+            )}
+          </p>
+          <p className="font-mono text-xs text-faint">{githubRepo}</p>
+        </header>
+        <EntryTable lang={lang} entries={entries} onChanged={onSaved} />
+      </div>
+    );
+  }
   if (gate.state === 'checking') return <p className="py-24 text-center text-sm text-faint">{t.checking}</p>;
   if (gate.state === 'offline') return <Notice title={t.offlineTitle} text={t.offlineText} />;
   if (gate.state === 'readonly') return <Notice title={t.readOnlyTitle} text={t.readOnlyText} />;
