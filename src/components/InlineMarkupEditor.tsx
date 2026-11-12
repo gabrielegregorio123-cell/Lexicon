@@ -18,6 +18,29 @@ import {
   type TokenPath,
 } from '../lib/lexiconSections.ts';
 import type { Suggestions } from './MarkupToolbar.tsx';
+import { BLOCK_GROUP_LABEL, blockOptionsFor, type BlockOption, type SectionType } from '../lib/lexiconCatalogue.ts';
+import { entryIdFromFileName } from '../lib/entryTemplate.ts';
+
+/** Collegamenti rapidi costruiti dal testo selezionato. */
+const QUICK_LINKS: Array<{ label: string; url: (s: string) => string }> = [
+  { label: 'Logeion', url: (s) => `https://logeion.uchicago.edu/${encodeURIComponent(s)}` },
+  { label: 'Perseus', url: (s) => `https://www.perseus.tufts.edu/hopper/morph?l=${encodeURIComponent(s)}&la=greek` },
+  { label: 'PHI', url: (s) => `https://epigraphy.packhum.org/search?patt=${encodeURIComponent(s)}` },
+  { label: 'papyri.info', url: (s) => `https://papyri.info/search?STRING=${encodeURIComponent(s)}` },
+];
+
+/** "lexicon_fides" → "lexicon_fides.html"; gli URL restano come sono. */
+export function normalizeLink(v: string): string {
+  const t = v.trim();
+  if (/^(lexicon|hom|trag|com|cpch)_[A-Za-z0-9_]+$/.test(t)) return `${t}.html`;
+  return t;
+}
+
+/** Dove porta un link, per il pulsante "Apri". */
+function linkHref(v: string): string {
+  const m = /^(?:\.\/|\/)?((?:lexicon|hom|trag|com|cpch)_[A-Za-z0-9_]+)(?:\.html|\.xml)?/.exec(v);
+  return m ? `#/entry/${entryIdFromFileName(m[1])}` : v;
+}
 
 /* ================================================================
  * InlineMarkupEditor — marcatura assistita del testo di un textpart
@@ -32,6 +55,10 @@ interface Props {
   onChange: (xml: string) => void;
   lang: Language;
   suggestions: Suggestions;
+  /** tipo di sezione (Ioudaios): decide l'ordine del menù "Aggiungi" */
+  sectionType?: SectionType;
+  /** lingua dell'edizione, per le etichette delle sottosezioni */
+  textLang?: string;
 }
 
 type El = MarkupToken & { kind: 'el' };
@@ -69,6 +96,7 @@ const ATTR_OPTIONS: Record<string, Record<string, readonly string[]>> = {
   rs: { type: REALM_TYPES },
   persName: { type: CHARACTER_TYPES },
   ref: { type: SOURCE_TYPES },
+  w: {},
   foreign: { 'xml:lang': TEXT_LANGS },
   hi: { rend: ['italic', 'bold', 'superscript'] },
 };
@@ -122,7 +150,7 @@ function choices(lang: Language): Array<{ group: string; items: Choice[] }> {
   return Array.from(groups, ([group, items]) => ({ group: GROUP_LABELS[group as keyof typeof GROUP_LABELS]?.[lang] || group, items }));
 }
 
-export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, suggestions }) => {
+export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, suggestions, sectionType, textLang = 'en' }) => {
   const [tokens, setTokens] = useState<MarkupToken[] | null>(() => {
     try {
       return tokenize(value);
@@ -136,7 +164,45 @@ export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, sug
   const [menu, setMenu] = useState<MenuState | null>(null);
   const [pop, setPop] = useState<PopState | null>(null);
   const [editing, setEditing] = useState<{ path: TokenPath; draft: string; error?: string } | null>(null);
-  const [adding, setAdding] = useState<{ draft: string; error?: string } | null>(null);
+  const [adding, setAdding] = useState<{ opt: BlockOption; draft: string; error?: string } | null>(null);
+  const [linkDraft, setLinkDraft] = useState('');
+  const blockOptions = useMemo(() => blockOptionsFor(sectionType), [sectionType]);
+
+  /** Aggiunge un blocco in fondo alla sezione, con l'indentazione del file. */
+  const appendBlock = (xml: string) => {
+    if (!tokens) return;
+    const block = tokenize(xml);
+    const ws = tokens.find((t) => t.kind === 'text' && /^\s*\n\s*$/.test(t.value)) as { value: string } | undefined;
+    const nl = ws ? ws.value.replace(/^[\s\S]*\n/, '\n') : '\n';
+    const trailing = tokens[tokens.length - 1];
+    const blank = trailing?.kind === 'text' && /^\s*$/.test(trailing.value);
+    commit([...(blank ? tokens.slice(0, -1) : tokens), { kind: 'text', value: nl }, ...block, ...(blank ? [trailing] : [])]);
+  };
+
+  /** Sposta un blocco prima/dopo il blocco fratello più vicino. */
+  const moveBlock = (path: TokenPath, dir: -1 | 1) => {
+    if (!tokens) return;
+    const parentPath = path.slice(0, -1);
+    const parent = parentPath.length ? (getTokenAt(tokens, parentPath) as El | null) : null;
+    const list = parent ? parent.children : tokens;
+    const i = path[path.length - 1];
+    let j = i + dir;
+    while (j >= 0 && j < list.length && list[j].kind !== 'el') j += dir;
+    if (j < 0 || j >= list.length) return;
+    const next = list.slice();
+    [next[i], next[j]] = [next[j], next[i]];
+    commit(parent ? replaceToken(tokens, parentPath, [{ ...parent, children: next }]) : next);
+  };
+
+  /** Collega la selezione corrente a un URL o a una scheda LARES. */
+  const linkSelection = (target: string) => {
+    if (!menu || !tokens || !target.trim()) return;
+    const { sel } = menu;
+    commit(wrapSlice(tokens, sel.startPath, sel.startOffset, sel.endPath, sel.endOffset, (slice) => ({ kind: 'el', name: 'ref', attrs: { corresp: normalizeLink(target) }, children: slice, selfClosing: false })));
+    setMenu(null);
+    setLinkDraft('');
+    window.getSelection()?.removeAllRanges();
+  };
   const [warn, setWarn] = useState<string | null>(null);
   const lastEmitted = useRef(value);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -289,6 +355,12 @@ export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, sug
               <>
                 {render(t.children, path, containerKids)}
                 <span className="mk-block-tools no-print">
+                  <button type="button" title={tr(lang, 'Sposta su', 'Move up', 'W górę')} onClick={() => moveBlock(path, -1)}>
+                    ↑
+                  </button>
+                  <button type="button" title={tr(lang, 'Sposta giù', 'Move down', 'W dół')} onClick={() => moveBlock(path, 1)}>
+                    ↓
+                  </button>
                   <button
                     type="button"
                     title={tr(lang, 'Riscrivi come XML', 'Rewrite as XML', 'Przepisz jako XML')}
@@ -392,13 +464,14 @@ export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, sug
       {mode === 'visual' && tokens && (
         <div>
           {adding ? (
-            <div className="space-y-2">
+            <div className="card space-y-2 p-3">
+              <p className="eyebrow">{adding.opt.label[lang]}</p>
               <textarea
-                className="field min-h-[5rem] w-full !text-sm"
+                className="field min-h-[4rem] w-full !text-sm"
                 autoFocus
-                placeholder={tr(lang, 'Testo del nuovo paragrafo (puoi includere tag XML)', 'New paragraph text (XML tags allowed)', 'Tekst nowego akapitu (dozwolone znaczniki XML)')}
+                placeholder={adding.opt.placeholder?.[lang] ?? tr(lang, 'Testo (puoi includere tag XML)', 'Text (XML tags allowed)', 'Tekst (dozwolone znaczniki XML)')}
                 value={adding.draft}
-                onChange={(e) => setAdding({ draft: e.target.value })}
+                onChange={(e) => setAdding({ ...adding, draft: e.target.value })}
               />
               {adding.error && <p className="text-xs text-danger">{adding.error}</p>}
               <div className="flex gap-2">
@@ -408,14 +481,7 @@ export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, sug
                   disabled={!adding.draft.trim()}
                   onClick={() => {
                     try {
-                      const kids = tokenize(adding.draft.trim());
-                      // indentazione: copia quella del primo blocco esistente
-                      const ws = tokens.find((t) => t.kind === 'text' && /^\s*\n\s*$/.test(t.value)) as { value: string } | undefined;
-                      const nl = ws ? ws.value.replace(/^[\s\S]*\n/, '\n') : '\n';
-                      const trailing = tokens[tokens.length - 1];
-                      const head = trailing?.kind === 'text' && /^\s*$/.test(trailing.value) ? tokens.slice(0, -1) : tokens;
-                      const tail = trailing?.kind === 'text' && /^\s*$/.test(trailing.value) ? [trailing] : [];
-                      commit([...head, { kind: 'text', value: nl }, { kind: 'el', name: 'p', attrs: {}, children: kids, selfClosing: false }, ...tail]);
+                      appendBlock(adding.opt.build(adding.draft, textLang));
                       setAdding(null);
                     } catch (err) {
                       setAdding({ ...adding, error: (err as Error).message });
@@ -430,9 +496,33 @@ export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, sug
               </div>
             </div>
           ) : (
-            <button type="button" className="chip" onClick={() => setAdding({ draft: '' })}>
-              + {tr(lang, 'Paragrafo', 'Paragraph', 'Akapit')}
-            </button>
+            <select
+              className="chip !pr-2"
+              value=""
+              aria-label={tr(lang, 'Aggiungi alla sezione', 'Add to section', 'Dodaj do sekcji')}
+              onChange={(e) => {
+                const opt = blockOptions.find((o) => o.id === e.target.value);
+                if (!opt) return;
+                if (opt.needsText) setAdding({ opt, draft: '' });
+                else appendBlock(opt.build('', textLang));
+              }}
+            >
+              <option value="">+ {tr(lang, 'Aggiungi…', 'Add…', 'Dodaj…')}</option>
+              {(['sub', 'occ', 'text'] as const)
+                .filter((g) => blockOptions.some((o) => o.group === g))
+                .sort((x, y) => blockOptions.findIndex((o) => o.group === x) - blockOptions.findIndex((o) => o.group === y))
+                .map((g) => (
+                  <optgroup key={g} label={BLOCK_GROUP_LABEL[g][lang]}>
+                    {blockOptions
+                      .filter((o) => o.group === g)
+                      .map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.label[lang]}
+                        </option>
+                      ))}
+                  </optgroup>
+                ))}
+            </select>
           )}
         </div>
       )}
@@ -450,6 +540,41 @@ export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, sug
               <p className="mb-2 truncate text-xs text-faint">«{menu.sel.text.trim().slice(0, 60)}»</p>
               {!menu.choice ? (
                 <div className="space-y-2">
+                  <form
+                    className="space-y-1.5 rounded-lg border border-brand/30 bg-brand-soft p-2"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      linkSelection(linkDraft);
+                    }}
+                  >
+                    <p className="eyebrow !text-[0.6rem]">{tr(lang, 'Link', 'Link', 'Link')}</p>
+                    <div className="flex gap-1">
+                      <input
+                        className="field !py-1 !text-xs"
+                        autoFocus
+                        value={linkDraft}
+                        onChange={(e) => setLinkDraft(e.target.value)}
+                        list="ime-link-entries"
+                        placeholder={tr(lang, 'URL oppure scheda LARES (lexicon_…)', 'URL or LARES entry (lexicon_…)', 'URL lub hasło LARES (lexicon_…)')}
+                        autoComplete="off"
+                      />
+                      <button type="submit" className="btn btn-primary !py-1 !text-xs" disabled={!linkDraft.trim()}>
+                        {tr(lang, 'Collega', 'Link', 'Połącz')}
+                      </button>
+                    </div>
+                    <datalist id="ime-link-entries">
+                      {suggestions.entries.map((x) => (
+                        <option key={x} value={x} />
+                      ))}
+                    </datalist>
+                    <div className="flex flex-wrap gap-1">
+                      {QUICK_LINKS.map((q) => (
+                        <button key={q.label} type="button" className="chip !py-0 !text-[0.7rem]" title={q.url(menu.sel.text.trim())} onClick={() => setLinkDraft(q.url(menu.sel.text.trim()))}>
+                          {q.label}
+                        </button>
+                      ))}
+                    </div>
+                  </form>
                   {groups.map((g) => (
                     <div key={g.group}>
                       <p className="eyebrow !text-[0.6rem]">{g.group}</p>
@@ -526,7 +651,14 @@ export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, sug
         createPortal(
           <div className="fixed inset-0 z-40" onMouseDown={() => setPop(null)}>
             <div className="card absolute z-50 w-[21rem] space-y-3 p-3 shadow-xl" style={{ left: Math.max(8, pop.x), top: Math.min(pop.y, window.innerHeight - 300) }} onMouseDown={(e) => e.stopPropagation()}>
-              <p className="font-mono text-xs text-brand">&lt;{popToken.name}&gt;</p>
+              <p className="flex items-center justify-between gap-2 font-mono text-xs text-brand">
+                <span>&lt;{popToken.name}&gt;</span>
+                {(popToken.attrs.corresp || popToken.attrs.target) && (
+                  <a className="font-sans text-xs underline" href={linkHref(popToken.attrs.corresp || popToken.attrs.target)} target="_blank" rel="noreferrer">
+                    {tr(lang, 'Apri il link ↗', 'Open link ↗', 'Otwórz link ↗')}
+                  </a>
+                )}
+              </p>
               <p className="truncate text-sm">«{sliceText(popToken.children).trim().slice(0, 80)}»</p>
               <div className="space-y-1.5">
                 {pop.attrs.map(([k, v], i) => {
@@ -549,9 +681,38 @@ export const InlineMarkupEditor: React.FC<Props> = ({ value, onChange, lang, sug
                     </div>
                   );
                 })}
-                <button type="button" className="text-xs text-muted hover:text-brand" onClick={() => setPop({ ...pop, attrs: [...pop.attrs, ['', '']] })}>
-                  + {tr(lang, 'attributo', 'attribute', 'atrybut')}
-                </button>
+                <div className="flex gap-3">
+                  <button type="button" className="text-xs text-muted hover:text-brand" onClick={() => setPop({ ...pop, attrs: [...pop.attrs, ['', '']] })}>
+                    + {tr(lang, 'attributo', 'attribute', 'atrybut')}
+                  </button>
+                  {popToken.name === 'ref' && !pop.attrs.some(([k]) => k === 'corresp') && (
+                    <button type="button" className="text-xs text-muted hover:text-brand" onClick={() => setPop({ ...pop, attrs: [...pop.attrs, ['corresp', '']] })}>
+                      + {tr(lang, 'link', 'link', 'link')}
+                    </button>
+                  )}
+                </div>
+                {popToken.name !== 'ref' && (
+                  <form
+                    className="flex gap-1 pt-1"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!linkDraft.trim()) return;
+                      commit(replaceToken(tokens!, pop.path, [{ kind: 'el', name: 'ref', attrs: { corresp: normalizeLink(linkDraft) }, children: [popToken], selfClosing: false }]));
+                      setLinkDraft('');
+                      setPop(null);
+                    }}
+                  >
+                    <input className="field !py-1 !text-xs" value={linkDraft} onChange={(e) => setLinkDraft(e.target.value)} list="ime-link-entries-pop" placeholder={tr(lang, 'Collega a URL o scheda…', 'Link to URL or entry…', 'Połącz z URL lub hasłem…')} />
+                    <datalist id="ime-link-entries-pop">
+                      {suggestions.entries.map((x) => (
+                        <option key={x} value={x} />
+                      ))}
+                    </datalist>
+                    <button type="submit" className="btn !py-1 !text-xs" disabled={!linkDraft.trim()}>
+                      {tr(lang, 'Collega', 'Link', 'Połącz')}
+                    </button>
+                  </form>
+                )}
               </div>
               <div className="flex flex-wrap gap-2">
                 <button

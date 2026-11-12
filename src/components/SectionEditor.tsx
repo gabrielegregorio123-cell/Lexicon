@@ -8,7 +8,7 @@ import { browserParse, validateEntryXml } from '../lib/validateEntry.ts';
 import { entryIdFromFileName } from '../lib/entryTemplate.ts';
 import { ApiError, saveEntry } from '../lib/editorApi.ts';
 import { STATIC_SITE } from '../utils/endpoints.ts';
-import { clearDraft, copyText, githubEditUrl, loadDraft, saveDraft } from '../lib/staticEditing.ts';
+import { clearDraft, copyText, githubEditUrl, githubNewFileUrl, loadDraft, saveDraft } from '../lib/staticEditing.ts';
 import {
   addBibItem,
   addBibliography,
@@ -36,6 +36,7 @@ import {
   type XNode,
 } from '../lib/lexiconSections.ts';
 import { InlineMarkupEditor } from './InlineMarkupEditor.tsx';
+import { BIB_HEADINGS, SECTION_TYPES, bibHeadingText, sectionHead, sectionTypeOf, type SectionType } from '../lib/lexiconCatalogue.ts';
 import type { Suggestions } from './MarkupToolbar.tsx';
 import './sectionEditor.css';
 
@@ -50,7 +51,9 @@ interface Props {
   lang: Language;
   entries: LexiconEntry[];
   fileName: string;
+  /** XML pubblicato; '' per una scheda nuova che esiste solo come bozza. */
   initialXml: string;
+  isNew?: boolean;
   onSaved: () => Promise<void> | void;
 }
 
@@ -138,7 +141,7 @@ const SectionHeader: React.FC<{ title: string; desc: string; children?: React.Re
 
 /* ── editor ────────────────────────────────────────────────────── */
 
-export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initialXml, onSaved }) => {
+export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initialXml, isNew = false, onSaved }) => {
   const L = (it: string, en: string, pl: string) => tr(lang, it, en, pl);
   // Sito statico: si riparte dalla bozza salvata in questo browser, se c'è.
   const [startDraft] = useState(() => {
@@ -155,7 +158,7 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
   const [active, setActive] = useState<string>('titles');
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<{ kind: 'ok' | 'warn' | 'error'; text: string } | null>(() =>
-    startDraft
+    startDraft && !isNew
       ? startDraft.base !== initialXml
         ? { kind: 'warn', text: tr(lang, `Bozza del ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} ripristinata, ma il file pubblicato è cambiato nel frattempo: controlla prima di pubblicare.`, `Draft from ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} restored, but the published file has changed since: check before publishing.`, `Przywrócono szkic z ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })}, ale opublikowany plik się zmienił: sprawdź przed publikacją.`) }
         : { kind: 'ok', text: tr(lang, `Bozza del ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} ripristinata da questo browser.`, `Draft from ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} restored from this browser.`, `Przywrócono szkic z ${new Date(startDraft.savedAt).toLocaleString(lang, { dateStyle: 'short', timeStyle: 'short' })} z tej przeglądarki.`) }
@@ -330,10 +333,12 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
         setXmlRaw(finalXml);
         setRevNote('');
         const copied = await copyText(finalXml);
-        window.open(githubEditUrl(fileName), '_blank', 'noopener');
+        window.open(isNew ? githubNewFileUrl(fileName, finalXml) : githubEditUrl(fileName), '_blank', 'noopener');
         setBanner({
           kind: copied ? 'ok' : 'warn',
-          text: copied
+          text: copied && isNew
+            ? L('XML copiato. Nella pagina GitHub appena aperta (nuovo file, nome già compilato) controlla che il contenuto ci sia, altrimenti incollalo (⌘V), poi premi «Commit changes».', 'XML copied. In the GitHub page just opened (new file, name prefilled) check that the content is there, otherwise paste it (⌘V), then press “Commit changes”.', 'XML skopiowany. Na otwartej stronie GitHuba (nowy plik, nazwa uzupełniona) sprawdź treść, w razie potrzeby wklej ją (⌘V) i naciśnij „Commit changes”.')
+            : copied
             ? L('XML copiato. Nella pagina GitHub appena aperta seleziona tutto il contenuto (⌘A), incolla (⌘V) e premi «Commit changes». La bozza resta in questo browser finché il sito non si aggiorna.', 'XML copied. In the GitHub page just opened select all (⌘A), paste (⌘V) and press “Commit changes”. The draft stays in this browser until the site updates.', 'XML skopiowany. Na otwartej stronie GitHuba zaznacz wszystko (⌘A), wklej (⌘V) i naciśnij „Commit changes”. Szkic zostaje w tej przeglądarce do aktualizacji strony.')
             : L('Non riesco a copiare negli appunti: usa «Scarica» e carica il file nella pagina GitHub appena aperta.', 'Could not copy to the clipboard: use “Download” and upload the file in the GitHub page just opened.', 'Nie udało się skopiować: użyj „Pobierz” i wgraj plik na otwartej stronie GitHuba.'),
         });
@@ -489,6 +494,51 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
     </div>
   );
 
+  /** Inserisce una sezione del tipo scelto nella posizione prevista dal modello Ioudaios. */
+  const addSection = (ed: (typeof m.editions)[number], type: SectionType | null, edLang: string) => {
+    const block = type ? textpartBlock(type.n, sectionHead(type, edLang), unit) : textpartBlock('', '', unit);
+    const rank = (tp: (typeof ed.textparts)[number]) => {
+      const t = sectionTypeOf(tp.n, tp.head ? plain(inner(xml, tp.head)) : '');
+      return t ? SECTION_TYPES.indexOf(t) : SECTION_TYPES.length;
+    };
+    const want = type ? SECTION_TYPES.indexOf(type) : SECTION_TYPES.length;
+    const before = ed.textparts.filter((tp) => rank(tp) <= want);
+    const after = before.length ? before[before.length - 1] : null;
+    if (after) return setXml(insertAfter(xml, after.node, block));
+    const first = ed.textparts[0];
+    if (first) {
+      const ind = indentOf(xml, first.node);
+      return setXml(splice(xml, first.node.openStart, first.node.openStart, `${block.split('\n').join(`\n${ind}`)}\n${ind}`));
+    }
+    const ind = indentOf(xml, ed.node) + unit;
+    setXml(splice(xml, ed.node.openEnd, ed.node.openEnd, `\n${ind}${block.split('\n').join(`\n${ind}`)}`));
+  };
+
+  const SectionPicker = ({ ed, edLang }: { ed: (typeof m.editions)[number]; edLang: string }) => {
+    const present = new Set(ed.textparts.map((tp) => sectionTypeOf(tp.n, tp.head ? plain(inner(xml, tp.head)) : '')?.n).filter(Boolean));
+    return (
+      <select
+        className="chip !pr-2"
+        value=""
+        aria-label={L('Aggiungi sezione', 'Add section', 'Dodaj sekcję')}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (!v) return;
+          addSection(ed, v === '__free' ? null : SECTION_TYPES.find((t) => t.n === v) || null, edLang);
+        }}
+      >
+        <option value="">+ {L('Aggiungi sezione…', 'Add section…', 'Dodaj sekcję…')}</option>
+        {SECTION_TYPES.map((t) => (
+          <option key={t.n} value={t.n}>
+            {sectionHead(t, edLang)}
+            {present.has(t.n) ? ` (${L('già presente', 'already present', 'już jest')})` : ''}
+          </option>
+        ))}
+        <option value="__free">{L('Sezione libera', 'Free section', 'Dowolna sekcja')}</option>
+      </select>
+    );
+  };
+
   const EditionPanel = (edLang: string) => {
     const eds = m.editions.filter((e) => e.lang === edLang);
     return (
@@ -534,20 +584,15 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
                     key={`${edLang}-${ei}-${ti}`}
                     lang={lang}
                     suggestions={suggestions}
+                    sectionType={sectionTypeOf(tp.n, tp.head ? plain(inner(xml, tp.head)) : '')}
+                    textLang={edLang}
                     value={xml.slice(tp.contentStart, tp.contentEnd)}
                     onChange={(content) => setXml(setContent(xml, tp, content), `content-${edLang}-${ei}-${ti}`)}
                   />
-                  <button type="button" className="chip" onClick={() => setXml(insertAfter(xml, tp.node, textpartBlock('', '', unit)))}>
-                    + {L('Sezione qui sotto', 'Section below', 'Sekcja poniżej')}
-                  </button>
                 </article>
               );
             })}
-            {ed.textparts.length === 0 && (
-              <button type="button" className="chip" onClick={() => setXml(splice(xml, ed.node.openEnd, ed.node.openEnd, `\n${indentOf(xml, ed.node)}${unit}${textpartBlock('', '', unit).split('\n').join(`\n${indentOf(xml, ed.node)}${unit}`)}`))}>
-                + {L('Sezione', 'Section', 'Sekcja')}
-              </button>
-            )}
+            <SectionPicker ed={ed} edLang={edLang} />
             {ed.loose.length > 0 && (
               <div className="space-y-2">
                 <p className="eyebrow">{L('Contenuto fuori dai textpart', 'Content outside textparts', 'Treść poza textpart')}</p>
@@ -567,7 +612,20 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
       {m.bibliographies.map((b, bi) => {
         const ind = b.items[0] ? indentOf(xml, b.items[0]) : indentOf(xml, b.node) + unit;
         const sortItems = () => {
-          const sorted = [...b.items].sort((x, y) => plain(inner(xml, x)).localeCompare(plain(inner(xml, y)), 'en', { sensitivity: 'base' }));
+          // ordina dentro ciascun gruppo, lasciando fermi i sottotitoli (Corpora:, Studies:…)
+          const sorted: XNode[] = [];
+          let run: XNode[] = [];
+          const flush = () => {
+            sorted.push(...run.sort((x, y) => plain(inner(xml, x)).localeCompare(plain(inner(xml, y)), 'en', { sensitivity: 'base' })));
+            run = [];
+          };
+          for (const it of b.items) {
+            if (bibHeadingText(inner(xml, it)) !== null) {
+              flush();
+              sorted.push(it);
+            } else run.push(it);
+          }
+          flush();
           const first = b.items[0], last = b.items[b.items.length - 1];
           setXml(splice(xml, first.openStart, last.closeEnd, sorted.map((n) => outer(xml, n)).join(`\n${ind}`)));
         };
@@ -592,7 +650,13 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
                 <li key={ii} className="flex items-start gap-2">
                   <span className="w-6 pt-2 text-right font-mono text-xs text-faint">{ii + 1}</span>
                   <div className="flex-1">
-                    {it.name === 'p' || it.name === 'bibl' ? (
+                    {bibHeadingText(inner(xml, it)) !== null ? (
+                      <input
+                        className="field !py-1 font-semibold italic"
+                        value={bibHeadingText(inner(xml, it))!}
+                        onChange={(e) => setXml(replaceInner(xml, it, `<hi rend="italic">${escapeText(e.target.value)}</hi>`), `bib-h-${bi}-${ii}`)}
+                      />
+                    ) : it.name === 'p' || it.name === 'bibl' ? (
                       <BibItem value={inner(xml, it)} onApply={(v) => setXml(replaceInner(xml, it, v))} lang={lang} />
                     ) : (
                       <RawXmlField lang={lang} rows={3} value={outer(xml, it)} onApply={(v) => setXml(splice(xml, it.openStart, it.closeEnd, v))} />
@@ -604,9 +668,29 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
                 </li>
               ))}
             </ol>
-            <button type="button" className="chip" onClick={() => setXml(addBibItem(xml, b, L('Autore, N., anno, Titolo, luogo.', 'Author, N., year, Title, place.', 'Autor, N., rok, Tytuł, miejsce.'), unit))}>
-              + {L('Riferimento', 'Reference', 'Pozycja')}
-            </button>
+            <select
+              className="chip !pr-2"
+              value=""
+              aria-label={L('Aggiungi alla bibliografia', 'Add to bibliography', 'Dodaj do bibliografii')}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === 'ref') setXml(addBibItem(xml, b, L('Autore, N., anno, Titolo, luogo.', 'Author, N., year, Title, place.', 'Autor, N., rok, Tytuł, miejsce.'), unit));
+                else if (v) setXml(addBibItem(xml, b, `<hi rend="italic">${escapeText(v)}</hi>`, unit));
+              }}
+            >
+              <option value="">+ {L('Aggiungi…', 'Add…', 'Dodaj…')}</option>
+              <option value="ref">{L('Riferimento bibliografico', 'Bibliographic reference', 'Pozycja bibliograficzna')}</option>
+              <optgroup label={L('Sottotitolo', 'Subheading', 'Podtytuł')}>
+                {BIB_HEADINGS.map((h) => {
+                  const label = h[(m.editions[0]?.lang as 'it' | 'en' | 'pl') || 'en'] ?? h.en;
+                  return (
+                    <option key={h.en} value={label}>
+                      {label}
+                    </option>
+                  );
+                })}
+              </optgroup>
+            </select>
           </section>
         );
       })}
@@ -741,9 +825,23 @@ export const SectionEditor: React.FC<Props> = ({ lang, entries, fileName, initia
           <button type="button" className="btn" onClick={() => downloadFile(xml, fileName, 'application/xml')}>
             {L('Scarica', 'Download', 'Pobierz')}
           </button>
-          <button type="button" className="btn" disabled={!dirty} onClick={() => window.confirm(L('Annullare tutte le modifiche non salvate?', 'Discard all unsaved changes?', 'Odrzucić wszystkie niezapisane zmiany?')) && setXml(baseline)}>
-            {L('Ripristina', 'Revert', 'Przywróć')}
-          </button>
+          {isNew ? (
+            <button
+              type="button"
+              className="btn btn-danger"
+              onClick={() => {
+                if (!window.confirm(L('Eliminare la bozza di questa nuova scheda?', 'Delete the draft of this new entry?', 'Usunąć szkic tego nowego hasła?'))) return;
+                clearDraft(fileName);
+                window.location.hash = '#/editor';
+              }}
+            >
+              {L('Elimina bozza', 'Delete draft', 'Usuń szkic')}
+            </button>
+          ) : (
+            <button type="button" className="btn" disabled={!dirty} onClick={() => window.confirm(L('Annullare tutte le modifiche non salvate?', 'Discard all unsaved changes?', 'Odrzucić wszystkie niezapisane zmiany?')) && setXml(baseline)}>
+              {L('Ripristina', 'Revert', 'Przywróć')}
+            </button>
+          )}
           <button type="button" className="btn btn-primary" onClick={handleSave} disabled={saving || (!dirty && !revNote.trim())}>
             {saving ? L('Salvataggio…', 'Saving…', 'Zapisywanie…') : STATIC_SITE ? L('Pubblica su GitHub', 'Publish to GitHub', 'Opublikuj na GitHubie') : L('Salva', 'Save', 'Zapisz')}
             {errorCount > 0 && !saving && <span className="rounded bg-danger px-1.5 text-[0.625rem] text-white">{errorCount}</span>}

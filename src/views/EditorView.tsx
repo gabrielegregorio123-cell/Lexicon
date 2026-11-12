@@ -13,12 +13,12 @@ import {
   verifyToken,
   type ServerStatus,
 } from '../lib/editorApi.ts';
-import { EDITION_LANGS, ENTRY_KINDS, buildEntryTemplate, fileNameFor, type EditionLang, type EntryKind } from '../lib/entryTemplate.ts';
+import { EDITION_LANGS, ENTRY_KINDS, buildEntryTemplate, entryIdFromFileName, fileNameFor, type EditionLang, type EntryKind } from '../lib/entryTemplate.ts';
 import { EntryEditor } from '../components/EntryEditor.tsx';
 import { SectionEditor } from '../components/SectionEditor.tsx';
 import { useRawXml } from '../utils/entryBody.ts';
 import { asset, STATIC_SITE } from '../utils/endpoints.ts';
-import { draftFiles, githubRepo } from '../lib/staticEditing.ts';
+import { draftFiles, githubRepo, loadDraft, saveDraft } from '../lib/staticEditing.ts';
 
 interface Props {
   entries: LexiconEntry[];
@@ -426,7 +426,7 @@ const EntryTable: React.FC<{ lang: Language; entries: LexiconEntry[]; onChanged:
   );
 };
 
-const Wizard: React.FC<{ lang: Language; entries: LexiconEntry[]; onCreate: (fileName: string, xml: string) => void }> = ({ lang, entries, onCreate }) => {
+const Wizard: React.FC<{ lang: Language; entries: LexiconEntry[]; extraNames?: string[]; onCreate: (fileName: string, xml: string) => void }> = ({ lang, entries, extraNames = [], onCreate }) => {
   const t = T[lang];
   const [kind, setKind] = useState<EntryKind>('lexicon');
   const [title, setTitle] = useState('');
@@ -434,8 +434,9 @@ const Wizard: React.FC<{ lang: Language; entries: LexiconEntry[]; onCreate: (fil
   const [author, setAuthor] = useState(() => lsGet('lares_editor_author'));
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
 
-  const fileName = fileNameFor(kind, title, entries.map((e) => e.fileName));
-  const exists = entries.some((e) => e.fileName.toLowerCase() === fileName.toLowerCase());
+  const names = [...entries.map((e) => e.fileName), ...extraNames];
+  const fileName = fileNameFor(kind, title, names);
+  const exists = names.some((n) => n.toLowerCase() === fileName.toLowerCase());
   const valid = title.trim() && author.trim() && langs.length > 0 && !exists;
 
   const submit = (e: React.FormEvent) => {
@@ -537,14 +538,35 @@ export const EditorView: React.FC<Props> = ({ entries, lang, sub, param, onSaved
 
   if (gate.state === 'static') {
     if (entries.length === 0) return <p className="py-24 text-center text-sm text-faint">{t.checking}</p>;
+    const known = new Set(entries.map((e) => e.fileName.toLowerCase()));
+    const newDrafts = draftFiles().filter((f) => !known.has(f.toLowerCase()));
+    if (sub === 'new') {
+      return (
+        <Wizard
+          lang={lang}
+          entries={entries}
+          extraNames={newDrafts}
+          onCreate={(fileName, xml) => {
+            saveDraft(fileName, { xml, base: '' });
+            window.location.hash = `#/editor/sections/${entryIdFromFileName(fileName)}`;
+          }}
+        />
+      );
+    }
     if (sub === 'sections') {
       const entry = entries.find((e) => e.id.toLowerCase() === param.toLowerCase());
-      if (!entry) return <Notice title={t.notFound} text={param} />;
-      return <SectionsLoader key={entry.fileName} entry={entry} lang={lang} entries={entries} onSaved={onSaved} />;
+      if (entry) return <SectionsLoader key={entry.fileName} entry={entry} lang={lang} entries={entries} onSaved={onSaved} />;
+      // scheda nuova, che esiste solo come bozza in questo browser
+      const draftName = newDrafts.find((f) => entryIdFromFileName(f) === param.toLowerCase());
+      if (draftName && loadDraft(draftName)) {
+        return <SectionEditor key={draftName} lang={lang} entries={entries} fileName={draftName} initialXml="" isNew onSaved={onSaved} />;
+      }
+      return <Notice title={t.notFound} text={param} />;
     }
     return (
       <div className="space-y-8">
-        <header className="max-w-2xl space-y-3">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+        <div className="max-w-2xl space-y-3">
           <p className="eyebrow">{t.eyebrow}</p>
           <h1 className="page-title">{t.title}</h1>
           <p className="font-serif text-xl text-muted">
@@ -556,7 +578,31 @@ export const EditorView: React.FC<Props> = ({ entries, lang, sub, param, onSaved
             )}
           </p>
           <p className="font-mono text-xs text-faint">{githubRepo}</p>
+        </div>
+        <div className="flex gap-2">
+          <a href="#/markup" className="btn">
+            {tr(lang, 'Guida al markup', 'Markup guide', 'Przewodnik po znakowaniu')}
+          </a>
+          <a href="#/editor/new" className="btn btn-primary">
+            + {t.newEntry}
+          </a>
+        </div>
         </header>
+        {newDrafts.length > 0 && (
+          <section className="card space-y-2 p-4">
+            <p className="eyebrow">{tr(lang, 'Nuove schede in bozza (solo in questo browser)', 'New entries in draft (this browser only)', 'Nowe hasła w szkicu (tylko w tej przeglądarce)')}</p>
+            <ul className="space-y-1">
+              {newDrafts.map((f) => (
+                <li key={f} className="flex items-center justify-between gap-3">
+                  <span className="font-mono text-sm">{f}</span>
+                  <a href={`#/editor/sections/${entryIdFromFileName(f)}`} className="btn btn-primary !py-1">
+                    {tr(lang, 'Continua', 'Continue', 'Kontynuuj')}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
         <EntryTable lang={lang} entries={entries} onChanged={onSaved} />
       </div>
     );

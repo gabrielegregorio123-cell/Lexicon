@@ -13,6 +13,13 @@ const DATA_PATH = ((import.meta.env.VITE_GITHUB_DATA_PATH as string | undefined)
 export const githubRepo = REPO;
 export const githubEditUrl = (fileName: string) => `https://github.com/${REPO}/edit/${BRANCH}/${DATA_PATH}/${encodeURIComponent(fileName)}`;
 
+/** GitHub's "new file" page, prefilled with name and (when it fits in a URL) content. */
+export function githubNewFileUrl(fileName: string, xml: string): string {
+  const base = `https://github.com/${REPO}/new/${BRANCH}/${DATA_PATH}?filename=${encodeURIComponent(fileName)}`;
+  const value = encodeURIComponent(xml);
+  return value.length < 7000 ? `${base}&value=${value}` : base;
+}
+
 export interface Draft {
   xml: string;
   /** XML the draft started from: tells whether the published file changed since. */

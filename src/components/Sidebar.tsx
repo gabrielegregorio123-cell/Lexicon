@@ -82,6 +82,7 @@ const Panel: React.FC<SidebarProps & { onNavigate?: () => void }> = ({
         <Link href="#/bibliography" match="bibliography" label={t.bibliography} />
         <Link href="#/team" match="team" label={t.team} />
         <Link href="#/contact" match="contact" label={t.contact} />
+        <Link href="#/editor" match="editor" label="Editor" />
       </nav>
 
       {/* the project's own website (University of Bologna), opened in a new tab */}

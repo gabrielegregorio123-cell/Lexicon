@@ -1,4 +1,5 @@
 import { escapeXml, slugify } from './markup.ts';
+import { SECTION_TYPES, sectionHead } from './lexiconCatalogue.ts';
 
 /** Prefix of the file name: lexicon entries or one of the four book volumes. */
 export type EntryKind = 'lexicon' | 'hom' | 'trag' | 'com' | 'cpch';
@@ -47,10 +48,11 @@ export function entryIdFromFileName(fileName: string): string {
   return fileName.replace(/\.xml$/i, '').toLowerCase().replace(/[^a-z0-9_-]/g, '-');
 }
 
-const SECTIONS: Record<EditionLang, string[]> = {
-  en: ['Etymology', 'Testimonies', 'Discussion/Interpretation'],
-  it: ['Etimologia', 'Testimonianze', 'Discussione/Interpretazione'],
-  pl: ['Etymologia', 'Świadectwa', 'Dyskusja/Interpretacja'],
+/** Sezioni di una nuova scheda: il modello è lexicon_Ioudaios.xml (vedi lib/lexiconCatalogue.ts). */
+const SECTIONS: Record<EditionLang, Array<{ n: string; head: string }>> = {
+  en: SECTION_TYPES.map((t) => ({ n: t.n, head: sectionHead(t, 'en') })),
+  it: SECTION_TYPES.map((t) => ({ n: t.n, head: sectionHead(t, 'it') })),
+  pl: SECTION_TYPES.map((t) => ({ n: t.n, head: sectionHead(t, 'pl') })),
 };
 
 /** Skeleton of a new file, in the layout of the project templates (docs/efes/). */
@@ -63,12 +65,12 @@ export function buildEntryTemplate(input: NewEntryInput): string {
 
   const editions = langs
     .map((l) => {
-      const parts = lexicon ? SECTIONS[l] : [e(input.title)];
+      const parts = lexicon ? SECTIONS[l] : [{ n: 'intro', head: input.title }];
       return `            <div type="edition" xml:lang="${l}">
 ${parts
   .map(
-    (name, i) => `                <div type="textpart" n="${lexicon ? e(name) : 'intro'}">
-                    <head>${lexicon ? e(name) : e(input.title)}</head>
+    (part, i) => `                <div type="textpart" n="${e(part.n)}">
+                    <head>${e(part.head)}</head>
                     <p></p>
                 </div>${i < parts.length - 1 ? '\n' : ''}`
   )

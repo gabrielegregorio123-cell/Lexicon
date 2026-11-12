@@ -85,3 +85,21 @@ test('bibliografie riconosciute in entrambe le forme', () => {
   assert.ok(m.bibliographies.some((b) => b.form === 'textpart'));
   assert.ok(inner(xml, m.bibliographies[0].node).length > 0);
 });
+
+test('nuova scheda: sezioni del modello Ioudaios, @n uguale in tutte le lingue', async () => {
+  const { buildEntryTemplate } = await import('./entryTemplate.ts');
+  const { sectionTypeOf, SECTION_TYPES } = await import('./lexiconCatalogue.ts');
+  const xml = buildEntryTemplate({ kind: 'lexicon', title: 'Prova', fileBase: 'lexicon_prova', langs: ['it', 'en'], author: 'GG', date: '2026-11-12' });
+  const m = buildModel(xml);
+  assert.equal(m.editions.length, 2);
+  for (const ed of m.editions) {
+    assert.deepEqual(ed.textparts.map((t) => t.n), SECTION_TYPES.map((t) => t.n));
+    assert.ok(ed.textparts.every((t) => sectionTypeOf(t.n, '')));
+  }
+  assert.equal(inner(xml, m.editions[0].textparts[2].head!), 'Testimonianze');
+  // riconosce anche le sezioni scritte a mano nel corpus
+  assert.equal(sectionTypeOf('Poświadczenia', '')?.n, 'testimonies');
+  assert.equal(sectionTypeOf('Discussion/Interpretation', '')?.n, 'discussion / interpretation');
+  assert.equal(sectionTypeOf('', 'Testimonies')?.n, 'testimonies');
+  assert.equal(sectionTypeOf('Etymology', 'Etymology')?.n, 'etymology');
+});
